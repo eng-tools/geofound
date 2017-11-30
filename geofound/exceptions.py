@@ -1,0 +1,2 @@
+class DesignError(Exception):
+    pass

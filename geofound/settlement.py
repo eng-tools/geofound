@@ -18,14 +18,14 @@ def schmertmann_settlement(sp, fd, load, youngs_modulus_soil, **kwargs):
     depth = float(fd.depth)
     load = float(load)
 
-    sp.water_table = kwargs.get("water_table", sp.water_table)
+    sp.gwl = kwargs.get("gwl", sp.gwl)
     sp.unit_sat_weight = kwargs.get("unit_sat_weight", sp.unit_sat_weight)
-    sp.verbose = kwargs.get("verbose", sp.verbose)
+    verbose = kwargs.get("verbose", 0)
     years = kwargs.get("years", 0)
 
     q = load / (length * breadth)
-    sigma_v0_eff = (sp.unit_dry_weight * min(depth, sp.water_table) +
-                    (sp.unit_sat_weight - 9.8) * max([0, depth - sp.water_table]))
+    sigma_v0_eff = (sp.unit_dry_weight * min(depth, sp.gwl) +
+                    (sp.unit_sat_weight - 9.8) * max([0, depth - sp.gwl]))
     delta_q = q - sigma_v0_eff
 
     # EMBEDMENT FACTOR
@@ -47,8 +47,8 @@ def schmertmann_settlement(sp, fd, load, youngs_modulus_soil, **kwargs):
         zp = 0.5 * short + depth
         z_bottom = 2 * short + depth
 
-    sigma_vp_eff = (sp.unit_dry_weight * min(zp, sp.water_table) +
-                    (sp.unit_sat_weight - 9.8) * max([0, zp - sp.water_table]))
+    sigma_vp_eff = (sp.unit_dry_weight * min(zp, sp.gwl) +
+                    (sp.unit_sat_weight - 9.8) * max([0, zp - sp.gwl]))
     i_zp = 0.5 + 0.1 * (delta_q / sigma_vp_eff) ** 0.5
 
     i_z_top = (i_zp + 0.1) / 2
@@ -57,7 +57,7 @@ def schmertmann_settlement(sp, fd, load, youngs_modulus_soil, **kwargs):
     settlement = (c_1 * c_2 * c_3 * delta_q *
                   (i_z_top * (zp - depth) + i_z_bottom * (z_bottom - zp)) / youngs_modulus_soil)
 
-    if sp.verbose:
+    if verbose:
         log("delta_q:", delta_q)
         log("c_1:", c_1)
         log("c_2:", c_2)

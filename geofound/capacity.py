@@ -5,26 +5,10 @@ Created on Jan 17, 2014
 """
 
 import numpy as np
+
 from geofound.output import log
 from geofound.exceptions import DesignError
 from geofound import models
-
-
-def create_foundation(length, width, depth=0, height=0):
-    """
-    Can define a Foundation Object from dimensions.
-    :param length: Foundation length
-    :param width: Foundation width
-    :param depth: Foundation depth
-    :param height: Foundation height
-    :return: A Foundation object
-    """
-    a_foundation = models.Foundation()
-    a_foundation.length = length
-    a_foundation.width = width
-    a_foundation.depth = depth
-    a_foundation.height = height
-    return a_foundation
 
 
 def vesics_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
@@ -48,15 +32,15 @@ def vesics_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
 
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
-    nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
+    fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
     if sl.phi_r == 0:
-        nc_factor = 5.14
+        fd.nc_factor = 5.14
     else:
-        nc_factor = (nq_factor - 1) / np.tan(sl.phi_r)
-    ng_factor = 2.0 * (nq_factor + 1) * np.tan(sl.phi_r)
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
+    fd.ng_factor = 2.0 * (fd.nq_factor + 1) * np.tan(sl.phi_r)
 
     # shape factors:
-    s_c = 1.0 + nq_factor / nc_factor * fd.width / fd.length
+    s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd.width / fd.length
     s_q = 1 + fd.width / fd.length * np.tan(sl.phi_r)
     s_g = max(1.0 - 0.4 * fd.width / fd.length, 0.6)  # add limit of 0.6 based on Vesic
     # depth factors:
@@ -81,8 +65,8 @@ def vesics_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
                                         c_a / np.tan(sl.phi_r))) ** m
         i_g = (1.0 - horizontal_load / (vertical_load + area_foundation *
                                         c_a / np.tan(sl.phi_r))) ** (m + 1)
-    i_c = i_q - (1 - i_q) / (nq_factor - 1)
-    check_i_c = 1 - m * horizontal_load / (area_foundation * c_a * nc_factor)
+    i_c = i_q - (1 - i_q) / (fd.nq_factor - 1)
+    check_i_c = 1 - m * horizontal_load / (area_foundation * c_a * fd.nc_factor)
     if abs(check_i_c - i_c) / i_c > 0.001:
         raise DesignError
 
@@ -107,9 +91,9 @@ def vesics_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
     q_d = sl.unit_dry_weight * fd.depth
 
     if verbose:
-        log("Nc: ", nc_factor)
-        log("N_qV: ", nq_factor)
-        log("Ng: ", ng_factor)
+        log("Nc: ", fd.nc_factor)
+        log("N_qV: ", fd.nq_factor)
+        log("Ng: ", fd.ng_factor)
         log("s_c: ", s_c)
         log("s_q: ", s_q)
         log("s_g: ", s_g)
@@ -128,10 +112,10 @@ def vesics_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
         log("q_d: ", q_d)
 
     # Capacity
-    fd.q_ult = (sl.cohesion * nc_factor * s_c * d_c * i_c * g_c * b_c +
-                q_d * nq_factor * s_q * d_q * i_q * g_q * b_q +
+    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c * g_c * b_c +
+                q_d * fd.nq_factor * s_q * d_q * i_q * g_q * b_q +
                 0.5 * fd.width * sl.unit_dry_weight *
-                ng_factor * s_g * d_g * i_g * g_g * b_g)
+                fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
     if verbose:
         log("qult: ", fd.q_ult)
@@ -156,14 +140,12 @@ def terzaghi_capacity(sl, fd, round_footing=False, verbose=0):
     if (a02 - a0_check) / a02 > 0.001:
         raise DesignError
 
-    nq_factor = (a02 / (2 * (np.cos((45 + sl.phi / 2) *
-                                    np.pi / 180)) ** 2))
-    ng_factor = (2 * (nq_factor + 1) * np.tan(sl.phi_r) /
-                 (1 + 0.4 * np.sin(4 * sl.phi_r)))
+    fd.nq_factor = (a02 / (2 * (np.cos((45 + sl.phi / 2) * np.pi / 180)) ** 2))
+    fd.ng_factor = (2 * (fd.nq_factor + 1) * np.tan(sl.phi_r) / (1 + 0.4 * np.sin(4 * sl.phi_r)))
     if sl.phi_r == 0:
-        nc_factor = 5.7
+        fd.nc_factor = 5.7
     else:
-        nc_factor = (nq_factor - 1) / np.tan(sl.phi_r)
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
 
     # shape factors:
     if round_footing:
@@ -181,13 +163,13 @@ def terzaghi_capacity(sl, fd, round_footing=False, verbose=0):
     q_d = sl.unit_dry_weight * fd.depth
 
     # Capacity
-    fd.q_ult = (sl.cohesion * nc_factor * s_c + q_d * nq_factor * s_q + 0.5 * fd.width *
-                sl.unit_dry_weight * ng_factor * s_g)
+    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c + q_d * fd.nq_factor * s_q + 0.5 * fd.width *
+                sl.unit_dry_weight * fd.ng_factor * s_g)
 
     if verbose:
-        log("Nc: ", nc_factor)
-        log("Nq: ", nq_factor)
-        log("Ng: ", ng_factor)
+        log("Nc: ", fd.nc_factor)
+        log("Nq: ", fd.nq_factor)
+        log("Ng: ", fd.ng_factor)
         log("s_c: ", s_c)
         log("s_q: ", s_q)
         log("s_g: ", s_g)
@@ -216,18 +198,18 @@ def hansen_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
     c_a = 0.6 - 1.0 * sl.cohesion
 
-    nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
+    fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
     if sl.phi_r == 0:
-        nc_factor = 5.14
+        fd.nc_factor = 5.14
     else:
-        nc_factor = (nq_factor - 1) / np.tan(sl.phi_r)
-    ng_factor = 1.5 * (nq_factor - 1) * np.tan(sl.phi_r)
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
+    fd.ng_factor = 1.5 * (fd.nq_factor - 1) * np.tan(sl.phi_r)
 
     # shape factors
     if sl.phi_r == 0:
         s_c = 0.2 * fd.width / fd.length
     else:
-        s_c = 1.0 + nq_factor / nc_factor * fd.width / fd.length
+        s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd.width / fd.length
 
     s_q = 1.0 + fd.width / fd.length * np.sin(sl.phi_r)
     s_g = 1.0 - 0.4 * fd.width / fd.length
@@ -251,7 +233,7 @@ def hansen_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
     else:
         i_q = ((1.0 - 0.5 * horizontal_load /
                 (vertical_load + area_foundation * c_a / np.tan(sl.phi_r))) ** 5)
-        i_c = i_q - (1 - i_q) / (nq_factor - 1)
+        i_c = i_q - (1 - i_q) / (fd.nq_factor - 1)
         i_g = ((1 - (0.7 * horizontal_load) /
                 (vertical_load + area_foundation * c_a / np.tan(sl.phi_r))) ** 5)
 
@@ -272,9 +254,9 @@ def hansen_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
     b_g = (np.exp(-0.0471 * (base_tilt / np.pi * 180) * np.tan(sl.phi_r)))
 
     if verbose:
-        log("Nc: ", nc_factor)
-        log("Nq: ", nq_factor)
-        log("Ng: ", ng_factor)
+        log("Nc: ", fd.nc_factor)
+        log("Nq: ", fd.nq_factor)
+        log("Ng: ", fd.ng_factor)
         log("s_c: ", s_c)
         log("s_q: ", s_q)
         log("s_g: ", s_g)
@@ -296,14 +278,14 @@ def hansen_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
 
     # Capacity
     if sl.phi_r == 0:
-        fd.q_ult = (sl.cohesion * nc_factor *
+        fd.q_ult = (sl.cohesion * fd.nc_factor *
                     (1 + s_c + d_c - i_c - g_c - b_c) + q_d)
     else:
-        fd.q_ult = (sl.cohesion * nc_factor *
+        fd.q_ult = (sl.cohesion * fd.nc_factor *
                     s_c * d_c * i_c * g_c * b_c +
-                    q_d * nq_factor * s_q * d_q * i_q * g_q * b_q +
+                    q_d * fd.nq_factor * s_q * d_q * i_q * g_q * b_q +
                     0.5 * fd.width * sl.unit_dry_weight *
-                    ng_factor * s_g * d_g * i_g * g_g * b_g)
+                    fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
 
 def meyerhoff_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
@@ -322,18 +304,18 @@ def meyerhoff_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
 
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
-    nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 *
+    fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 *
                  np.exp(np.pi * np.tan(sl.phi_r)))
     if sl.phi_r == 0:
-        nc_factor = 5.14
+        fd.nc_factor = 5.14
     else:
-        nc_factor = (nq_factor - 1) / np.tan(sl.phi_r)
-    ng_factor = (nq_factor - 1) * np.tan(1.4 * sl.phi_r)
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
+    fd.ng_factor = (fd.nq_factor - 1) * np.tan(1.4 * sl.phi_r)
 
     if verbose:
-        log("Nc: ", nc_factor)
-        log("Nq: ", nq_factor)
-        log("Ng: ", ng_factor)
+        log("Nc: ", fd.nc_factor)
+        log("Nq: ", fd.nq_factor)
+        log("Ng: ", fd.ng_factor)
 
     kp = (np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2
     # shape factors
@@ -365,10 +347,10 @@ def meyerhoff_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
     q_d = sl.unit_dry_weight * fd.depth
 
     # Capacity
-    fd.q_ult = (sl.cohesion * nc_factor * s_c * d_c * i_c +
-                q_d * nq_factor * s_q * d_q * i_q +
+    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c +
+                q_d * fd.nq_factor * s_q * d_q * i_q +
                 0.5 * fd.width * sl.unit_dry_weight *
-                ng_factor * s_g * d_g * i_g)
+                fd.ng_factor * s_g * d_g * i_g)
     return fd.q_ult
 
 
@@ -410,15 +392,15 @@ def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, 
         raise DesignError("failed on eccentricity")
 
     # LOAD FACTORS:
-    nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
+    fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
     if sl.phi_r == 0:
-        nc_factor = 5.14
+        fd.nc_factor = 5.14
     else:
-        nc_factor = (nq_factor - 1) / np.tan(sl.phi_r)
-    ng_factor = 2.0 * (nq_factor - 1) * np.tan(sl.phi_r)
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
+    fd.ng_factor = 2.0 * (fd.nq_factor - 1) * np.tan(sl.phi_r)
 
     # shape factors:
-    s_c = 1.0 + nq_factor / nc_factor * width_eff / length_eff
+    s_c = 1.0 + fd.nq_factor / fd.nc_factor * width_eff / length_eff
     s_q = 1 + width_eff / length_eff * np.tan(sl.phi_r)
     s_g = max(1.0 - 0.4 * width_eff / length_eff, 0.6)  # add limit of 0.6 based on Vesics
 
@@ -433,7 +415,7 @@ def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, 
     else:
         d_q = (1 + 2 * np.tan(sl.phi_r) *
                (1 - np.sin(sl.phi_r)) ** 2 * k)
-        d_c = d_q - (1 - d_q) / (nq_factor * np.tan(sl.phi_r))
+        d_c = d_q - (1 - d_q) / (fd.nq_factor * np.tan(sl.phi_r))
     d_g = 1.0
 
     # load inclination factors:
@@ -453,7 +435,7 @@ def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, 
                                            np.tan(sl.phi_r))) ** 3)
         else:
             raise DesignError("not setup for bi-directional loading")
-        i_c = (i_q * nq_factor - 1) / (nq_factor - 1)
+        i_c = (i_q * fd.nq_factor - 1) / (fd.nq_factor - 1)
 
     # ground slope factors:
     g_c = 1 - slope * (1.0 - fd.depth / (2 * width_eff)) / 150
@@ -464,9 +446,9 @@ def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, 
     q_d = sl.unit_dry_weight * fd.depth
 
     if verbose:
-        log("Nc: ", nc_factor)
-        log("Nq: ", nq_factor)
-        log("Ng: ", ng_factor)
+        log("Nc: ", fd.nc_factor)
+        log("Nq: ", fd.nq_factor)
+        log("Ng: ", fd.ng_factor)
         log("H: ", horizontal_load)
         log("s_c: ", s_c)
         log("s_q: ", s_q)
@@ -482,10 +464,10 @@ def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, 
         log("g_g: ", g_g)
 
     # Capacity
-    fd.q_ult = (sl.cohesion * nc_factor * s_c * d_c * i_c * g_c +
-                q_d * nq_factor * s_q * d_q * i_q * g_q +
+    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c * g_c +
+                q_d * fd.nq_factor * s_q * d_q * i_q * g_q +
                 0.5 * width_eff * sl.unit_dry_weight *
-                ng_factor * s_g * d_g * i_g * g_g)
+                fd.ng_factor * s_g * d_g * i_g * g_g)
     if verbose:
         log("q_ult: ", fd.q_ult)
     return fd.q_ult
@@ -523,13 +505,13 @@ def salgado_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs)
         DesignError("failed on eccentricity")
 
     # LOAD FACTORS:
-    nq_factor = np.exp(np.pi * np.tan(sl.phi_r)) * (1 + np.sin(sl.phi_r)) / (1 - np.sin(sl.phi_r))
-    ng_factor = 1.5 * (nq_factor - 1) * np.tan(sl.phi_r)
-    # ng_factor = (nq_factor - 1) * np.tan(1.32 * sl.phi_r)
+    fd.nq_factor = np.exp(np.pi * np.tan(sl.phi_r)) * (1 + np.sin(sl.phi_r)) / (1 - np.sin(sl.phi_r))
+    fd.ng_factor = 1.5 * (fd.nq_factor - 1) * np.tan(sl.phi_r)
+    # fd.ng_factor = (fd.nq_factor - 1) * np.tan(1.32 * sl.phi_r)
     if sl.phi_r == 0:
-        nc_factor = 5.14
+        fd.nc_factor = 5.14
     else:
-        nc_factor = (nq_factor - 1) / np.tan(sl.phi_r)
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
 
     # shape factors:
     s_q = 1 + (width_eff / length_eff) * np.tan(sl.phi_r)
@@ -547,9 +529,9 @@ def salgado_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs)
     if verbose:
         log("width_eff: ", width_eff)
         log("length_eff: ", length_eff)
-        log("Nc: ", nc_factor)
-        log("Nq: ", nq_factor)
-        log("Ng: ", ng_factor)
+        log("Nc: ", fd.nc_factor)
+        log("Nq: ", fd.nq_factor)
+        log("Ng: ", fd.ng_factor)
         log("s_c: ", s_c)
         log("s_q: ", s_q)
         log("s_g: ", s_g)
@@ -559,10 +541,10 @@ def salgado_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs)
         log("q_d: ", q_d)
 
     # Capacity
-    fd.q_ult = (sl.cohesion * nc_factor * s_c * d_c +
-                q_d * nq_factor * s_q * d_q +
+    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c +
+                q_d * fd.nq_factor * s_q * d_q +
                 0.5 * width_eff * sl.unit_dry_weight *
-                ng_factor * s_g * d_g)
+                fd.ng_factor * s_g * d_g)
 
     if verbose:
         log("qult: ", fd.q_ult)
@@ -667,6 +649,15 @@ def method_selector(sl, fd, method, **kwargs):
         meyerhoff_capacity(sl, fd, **kwargs)
     elif method == 'salgado':
         salgado_capacity(sl, fd, **kwargs)
+
+available_methods = {
+    "vesics": vesics_capacity,
+    "nzs": nzs_vm4_capacity,
+    "terzaghi": terzaghi_capacity,
+    "hansen": hansen_capacity,
+    "meyerhoff": meyerhoff_capacity,
+    "salgado": salgado_capacity
+}
 
 
 def capacity_from_spt():

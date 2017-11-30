@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='geofound',
-      version='0.2.0',
+      version='0.2.1',
       description='A package to assess the bearing capacity and settlement of geofound',
       url='https://github.com/eng-tools/geofound',
       author='Maxim Millen',
@@ -25,9 +25,7 @@ setup(name='geofound',
           'test': ['pytest'],
       },
       python_requires='>=3',
-      package_data={
-          'models': ['models_data.dat'],
-      },
+      package_data={},
       zip_safe=False)
 
 

@@ -5,13 +5,14 @@ from geofound.output import log
 
 def schmertmann_settlement(sp, fd, load, youngs_modulus_soil, **kwargs):
     """
-    Calculates the settlement of a shallow foundation according to Schmertmann
+    Calculates the settlement of a shallow foundation (Schmertmann, 19XX).
+
     :param sp: Soil Profile object
     :param fd: Foundation object
     :param load:
-    :param youngs_modulus_soil:
+    :param youngs_modulus_soil: The Young's modulus of the soil.
     :param kwargs:
-    :return:
+    :return: float, the settlement.
     """
     length = float(fd.length)
     breadth = float(fd.width)

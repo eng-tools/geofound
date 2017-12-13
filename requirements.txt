@@ -1,2 +1,2 @@
-sfsimodels
+sfsimodels>=0.4.5
 numpy

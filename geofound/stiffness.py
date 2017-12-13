@@ -1,21 +1,25 @@
 
-def rotational_stiffness(sp, fd, axis="length"):
+def rotational_stiffness(sp, fd, axis="length", a0=0.0):
     """
-    Rotation stiffness of mat foundation.
+    Rotation stiffness of foundation.
     :param fd: Foundation object
     :param sp: Soil Object.
     :param axis: The axis which it should be computed around
     :return:
     """
+    if fd.depth > 0.0:
+        pass
+    l = fd.length * 0.5
+    b = fd.width * 0.5
+    v = sp.poissons_ratio
     if axis == "length":
-        l = fd.length * 0.5
-        b = fd.width * 0.5
-        i_y = fd.i_ll
+        i_bx = fd.i_ll
+        k_rx = 1 - 0.2 * a0
+        k_f_0 = (sp.g_mod / (1 - v) * i_bx ** 0.75 * (l / b) ** 0.25 * (2.4 + 0.5 * (b / l))) * k_rx
     else:
-        l = fd.width * 0.5
-        b = fd.length * 0.5
-        i_y = fd.i_ww
-    k_f_0 = (sp.g_mod / (1 - sp.poissons_ratio) * i_y ** 0.75 * (3 * (l / b) ** 0.15))
+        i_by = fd.i_ww
+        k_ry = 1 - 0.3 * a0
+        k_f_0 = (sp.g_mod / (1 - v) * i_by ** 0.75 * (3 * (l / b) ** 0.15)) * k_ry
     return k_f_0
 
 

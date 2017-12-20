@@ -475,8 +475,9 @@ def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, 
 
 def salgado_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
     """
-    calculates the capacity according to
-     THe Engineering of Foundations textbook by Salgado
+    Calculates the bearing capacity according to Salgado.
+
+    .. [1] O. Salgado, "The Engineering of Foundations textbook".
 
     :param sl: Soil object
     :param fd: Foundation object
@@ -485,6 +486,14 @@ def salgado_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs)
     :param vertical_load: Vertical load
     :param verbose: verbosity
     :return: ultimate bearing stress
+
+    .. math:: q_{ult} = \lambda_q \cdot N_{q} \cdot
+
+    Example::
+
+    >>> gfc.salgado_capacity(sl, fd)
+    44.0
+
     """
     # Need to make adjustments if sand  has DR<40% or
     # clay has liquidity indices greater than 0.7

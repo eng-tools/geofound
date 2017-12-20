@@ -23,3 +23,8 @@ http://geo.cv.nctu.edu.tw/foundation/download/FoundationsSettlements.pdf
 http://geo.cv.nctu.edu.tw/foundation/download/SchmertmannMethod.pdf
 
 http://www.civil.utah.edu/~bartlett/CVEEN5305/Handout%206%20-%20Schmertmann%20CPT%20method%20Example.pdf
+
+Docstring convention
+--------------------
+
+https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt

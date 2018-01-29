@@ -46,6 +46,7 @@ Examples
 and for settlement.
 
 .. code-block:: python
+
     load = 21484
     s = geofound.settlement.schmertmann_settlement(sl, fd, load, youngs_modulus_soil)
     print(' ')

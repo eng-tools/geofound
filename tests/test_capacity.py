@@ -1,7 +1,7 @@
 from geofound import models as gm
 from geofound import capacity
 
-from tests import checking_tools as ct
+from geofound import checking_tools as ct
 
 
 def test_vesics():

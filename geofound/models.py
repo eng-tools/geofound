@@ -2,7 +2,7 @@ from sfsimodels import models
 
 
 class Soil(models.Soil):
-    gwl = 0.0  # ground water level
+    gwl = 100000.0  # ground water level
 
 
 class RaftFoundation(models.RaftFoundation):

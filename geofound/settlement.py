@@ -43,8 +43,10 @@ def schmertmann_settlement(sp, fd, load, youngs_modulus_soil, **kwargs):
     # Peak settlement index
     if long / short > 10:
         zp = short + depth
+        z_top = 0.2
         z_bottom = 4 * short + depth
     else:
+        z_top = 0.1
         zp = 0.5 * short + depth
         z_bottom = 2 * short + depth
 
@@ -52,7 +54,7 @@ def schmertmann_settlement(sp, fd, load, youngs_modulus_soil, **kwargs):
                     (sp.unit_sat_weight - 9.8) * max([0, zp - sp.gwl]))
     i_zp = 0.5 + 0.1 * (delta_q / sigma_vp_eff) ** 0.5
 
-    i_z_top = (i_zp + 0.1) / 2
+    i_z_top = (i_zp + z_top) / 2
     i_z_bottom = i_zp / 2
 
     settlement = (c_1 * c_2 * c_3 * delta_q *

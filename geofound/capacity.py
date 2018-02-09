@@ -672,3 +672,71 @@ def capacity_from_spt():
     # q_n_all = 30N_55*(s/25.4) #or check section 4.3.1
     # #or convert to phi
     # phi = 25 + 28 * (N_55 / q)**0.5
+
+
+def meyerhoff_and_hanna_capacity(sl0, sl1, h0, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
+    """
+    Calculates the two-layered foundation capacity according Meyerhoff and Hanna (19XX)
+
+    :param sl0: Top Soil object
+    :param sl1: Base Soil object
+    :param h0: Height of top soil layer
+    :param fd: Foundation object
+    :param h_l: Horizontal load parallel to length
+    :param h_b: Horizontal load parallel to width
+    :param vertical_load: Vertical load
+    :param verbose: verbosity
+    :return: ultimate bearing stress
+    """
+
+    # UNFINISHED, this code is copied from the Meyerhoff method
+    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+
+    fd.nq_factor = ((np.tan(np.pi / 4 + sl0.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl0.phi_r)))
+    if sl0.phi_r == 0:
+        fd.nc_factor = 5.14
+    else:
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl0.phi_r)
+    fd.ng_factor = (fd.nq_factor - 1) * np.tan(1.4 * sl0.phi_r)
+
+    if verbose:
+        log("Nc: ", fd.nc_factor)
+        log("Nq: ", fd.nq_factor)
+        log("Ng: ", fd.ng_factor)
+
+    kp = (np.tan(np.pi / 4 + sl0.phi_r / 2)) ** 2
+    # shape factors
+    s_c = 1 + 0.2 * kp * fd.width / fd.length
+    if sl0.phi > 10:
+        s_q = 1.0 + 0.1 * kp * fd.width / fd.length
+    else:
+        s_q = 1.0
+    s_g = s_q
+
+    # depth factors
+    d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / fd.width
+    if sl0.phi > 10:
+        d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / fd.width
+    else:
+        d_q = 1.0
+    d_g = d_q
+
+    # inclination factors:
+    theta_load = np.arctan(horizontal_load / vertical_load)
+    i_c = (1 - theta_load / (np.pi * 0.5)) ** 2
+    i_q = i_c
+    if sl0.phi > 0:
+        i_g = (1 - theta_load / sl0.phi_r) ** 2
+    else:
+        i_g = 0
+
+    # stress at footing base:
+    q_d = sl0.unit_dry_weight * fd.depth
+
+    # Capacity
+    fd.q_ult = (sl0.cohesion * fd.nc_factor * s_c * d_c * i_c +
+                q_d * fd.nq_factor * s_q * d_q * i_q +
+                0.5 * fd.width * sl0.unit_dry_weight *
+                fd.ng_factor * s_g * d_g * i_g)
+    return fd.q_ult
+

@@ -214,6 +214,33 @@ def test_size_foundations():
                 assert ct.isclose(actual_fos, fos, rel_tol=0.1), (fos, vertical_load, method)
 
 
+def test_meyerhoff_and_hanna_capacity():
+    # STRONG SAND OVER WEAK CLAY
+    length = 1000.0  # actually a strip in
+    width = 1.0
+    depth = 0.0
+    fd = gm.create_foundation(length, width, depth)
+    phi_0 = 0.0
+    cohesion_0 = 40.0
+    unit_dry_weight_0 = 18.0
+    sl_0 = gm.create_soil(phi_0, cohesion_0, unit_dry_weight_0)
+
+    phi_1 = 0.0
+    cohesion_1 = 40.0
+    unit_dry_weight_1 = 18.0
+    sl_1 = gm.create_soil(phi_1, cohesion_1, unit_dry_weight_1)
+    h0 = 1.5  # m, height of the crust layer
+
+    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
+    print(fd.nc_factor)
+    print(fd.q_ult)
+    assert ct.isclose(fd.q_ult, 278.0, rel_tol=0.001), fd.q_ult
+
+    # STRONG SAND OVER WEAK SAND
+    # TODO: implement test for STRONG SAND OVER WEAK SAND
+    # STRONG CLAY OVER WEAK SAND
+    # TODO: implement test for STRONG CLAY OVER WEAK SAND
+
 
 if __name__ == '__main__':
-    test_size_foundations()
+    test_meyerhoff_and_hanna_capacity()

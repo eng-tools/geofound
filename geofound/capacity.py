@@ -674,12 +674,12 @@ def capacity_from_spt():
     # phi = 25 + 28 * (N_55 / q)**0.5
 
 
-def meyerhoff_and_hanna_capacity(sl0, sl1, h0, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
+def meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, c_a, k, fd, verbose=0):
     """
     Calculates the two-layered foundation capacity according Meyerhoff and Hanna (19XX)
 
-    :param sl0: Top Soil object
-    :param sl1: Base Soil object
+    :param sl_0: Top Soil object
+    :param sl_1: Base Soil object
     :param h0: Height of top soil layer
     :param fd: Foundation object
     :param h_l: Horizontal load parallel to length
@@ -690,32 +690,53 @@ def meyerhoff_and_hanna_capacity(sl0, sl1, h0, fd, h_l=0, h_b=0, vertical_load=1
     """
 
     # UNFINISHED, this code is copied from the Meyerhoff method
-    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+    #horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
-    fd.nq_factor = ((np.tan(np.pi / 4 + sl0.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl0.phi_r)))
-    if sl0.phi_r == 0:
-        fd.nc_factor = 5.14
+    sl_0.nq_factor_0 = ((np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_0.phi))))
+    if sl_0.phi == 0:
+        sl_0.nc_factor_0 = 5.14
     else:
-        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl0.phi_r)
-    fd.ng_factor = (fd.nq_factor - 1) * np.tan(1.4 * sl0.phi_r)
+        sl_0.nc_factor_0 = (sl_0.nq_factor_0 - 1) / np.tan(np.deg2rad(sl_0.phi))
+    sl_0.ng_factor_0 = (sl_0.nq_factor_0 - 1) * np.tan(1.4 * np.deg2rad(sl_0.phi))
+
+
+    sl_1.nq_factor_1 = ((np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_1.phi))))
+    if sl_1.phi == 0:
+        sl_1.nc_factor_1 = 5.14
+    else:
+        sl_1.nc_factor_1 = (sl_1.nq_factor_1 - 1) / np.tan(np.deg2rad(sl_1.phi))
+    sl_1.ng_factor_1 = (sl_1.nq_factor_1 - 1) * np.tan(1.4 * np.deg2rad(sl_1.phi))
 
     if verbose:
-        log("Nc: ", fd.nc_factor)
-        log("Nq: ", fd.nq_factor)
-        log("Ng: ", fd.ng_factor)
+        log("Nc: ", sl_1.nc_factor_1)
+        log("Nq: ", sl_1.nq_factor_1)
+        log("Ng: ", sl_1.ng_factor_1)
 
-    kp = (np.tan(np.pi / 4 + sl0.phi_r / 2)) ** 2
+    sl_0.kp_0 = (np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2
+    sl_1.kp_1 = (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2
     # shape factors
-    s_c = 1 + 0.2 * kp * fd.width / fd.length
-    if sl0.phi > 10:
-        s_q = 1.0 + 0.1 * kp * fd.width / fd.length
-    else:
-        s_q = 1.0
-    s_g = s_q
 
+    # s_c = 1 + 0.2 * kp * fd.width / fd.length
+    if sl_0.phi >= 10:
+        sl_0.s_c_0 = 1 + 0.2 * sl_0.kp_0 * (fd.width / fd.length)
+        sl_0.s_q_0 = 1.0 + 0.1 * sl_0.kp_0 * (fd.width / fd.length)
+    else:
+        sl_0.s_c_0 = 1 + 0.2 * (fd.width / fd.length)
+        sl_0.s_q_0 = 1.0
+    sl_0.s_g_0 = sl_0.s_q_0
+
+    if sl_1.phi >= 10:
+        sl_1.s_c_1 = 1 + 0.2 * sl_1.kp_1 * (fd.width / fd.length)
+        sl_1.s_q_1 = 1.0 + 0.1 * sl_1.kp_1 * (fd.width / fd.length)
+    else:
+        sl_1.s_c_1 = 1 + 0.2 * (fd.width / fd.length)
+        sl_1.s_q_1 = 1.0
+    sl_1.s_g_1 = sl_1.s_q_1
+
+    """
     # depth factors
     d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / fd.width
-    if sl0.phi > 10:
+    if sl_0.phi > 10:
         d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / fd.width
     else:
         d_q = 1.0
@@ -725,18 +746,41 @@ def meyerhoff_and_hanna_capacity(sl0, sl1, h0, fd, h_l=0, h_b=0, vertical_load=1
     theta_load = np.arctan(horizontal_load / vertical_load)
     i_c = (1 - theta_load / (np.pi * 0.5)) ** 2
     i_q = i_c
-    if sl0.phi > 0:
-        i_g = (1 - theta_load / sl0.phi_r) ** 2
+    if sl_0.phi > 0:
+        i_g = (1 - theta_load / sl_0.phi_r) ** 2
     else:
         i_g = 0
+    """
 
     # stress at footing base:
-    q_d = sl0.unit_dry_weight * fd.depth
+    #q_d = sl_0.unit_dry_weight_0 * fd.depth
 
     # Capacity
-    fd.q_ult = (sl0.cohesion * fd.nc_factor * s_c * d_c * i_c +
-                q_d * fd.nq_factor * s_q * d_q * i_q +
-                0.5 * fd.width * sl0.unit_dry_weight *
-                fd.ng_factor * s_g * d_g * i_g)
+    a = 1  # ????
+    s = 1  # ????
+    #k = 4.8  # graph
+    r=1+(fd.width/fd.length)
+    q_b1= (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
+    q_b2 = (sl_0.unit_dry_weight * h0 * sl_1.nq_factor_1 * sl_1.s_q_1)
+    q_b3 = (sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
+    fd.q_b = q_b1 + q_b2 + q_b3
+    fd.q_ult4 = (r * (2 * c_a * (h0 - fd.depth) / fd.width) * a)
+    fd.q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (k * np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+    fd.q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
+    fd.q_ult = fd.q_b + fd.q_ult4 + fd.q_ult5 - fd.q_ult6
+
+    # maximum value (qu <= qt)
+    q_t1 = (sl_0.cohesion * sl_0.nc_factor_0 * sl_0.s_c_0)
+    q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
+    q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+    fd.q_t = q_t1 + q_t2 + q_t3
+
+    if fd.q_ult > fd.q_t:
+        fd.q_ult = fd.q_t
+
     return fd.q_ult
+
+
+
+
 

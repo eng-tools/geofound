@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='geofound',
-      version='0.2.6',
+      version='0.2.7',
       description='A package to assess the bearing capacity and settlement of geofound',
       url='https://github.com/eng-tools/geofound',
       author='Maxim Millen',

@@ -5,7 +5,7 @@ Created on Jan 17, 2014
 """
 
 import numpy as np
-from scipy.interpolate import *
+
 
 from geofound.output import log
 from geofound.exceptions import DesignError
@@ -306,7 +306,7 @@ def meyerhoff_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 *
-                 np.exp(np.pi * np.tan(sl.phi_r)))
+                    np.exp(np.pi * np.tan(sl.phi_r)))
     if sl.phi_r == 0:
         fd.nc_factor = 5.14
     else:
@@ -651,6 +651,7 @@ def method_selector(sl, fd, method, **kwargs):
     elif method == 'salgado':
         salgado_capacity(sl, fd, **kwargs)
 
+
 available_methods = {
     "vesics": vesics_capacity,
     "nzs": nzs_vm4_capacity,
@@ -691,17 +692,18 @@ def meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0):
     """
 
     # UNFINISHED, this code is copied from the Meyerhoff method
-    #horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+    # horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
-    sl_0.nq_factor_0 = ((np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_0.phi))))
+    sl_0.nq_factor_0 = (
+    (np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_0.phi))))
     if sl_0.phi == 0:
         sl_0.nc_factor_0 = 5.14
     else:
         sl_0.nc_factor_0 = (sl_0.nq_factor_0 - 1) / np.tan(np.deg2rad(sl_0.phi))
     sl_0.ng_factor_0 = (sl_0.nq_factor_0 - 1) * np.tan(1.4 * np.deg2rad(sl_0.phi))
 
-
-    sl_1.nq_factor_1 = ((np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_1.phi))))
+    sl_1.nq_factor_1 = (
+    (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_1.phi))))
     if sl_1.phi == 0:
         sl_1.nc_factor_1 = 5.14
     else:
@@ -754,85 +756,73 @@ def meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0):
     """
 
     # stress at footing base:
-    #q_d = sl_0.unit_dry_weight_0 * fd.depth
+    # q_d = sl_0.unit_dry_weight_0 * fd.depth
 
     # ks
-    sl_0.q_0=(sl_0.cohesion*sl_0.nc_factor_0)+(0.5*sl_0.unit_dry_weight*fd.width*sl_0.ng_factor_0)
+    sl_0.q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
     sl_1.q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1)
-    q1_q0= sl_1.q_1 / sl_0.q_0
+    q1_q0 = sl_1.q_1 / sl_0.q_0
 
-
-    x_0 = np.array([0,20.08, 22.42, 25.08, 27.58, 30.08, 32.58, 34.92, 37.83, 40.00, 42.67, 45.00, 47.00, 49.75])
-    y_0 = np.array([0.93,0.93, 0.93, 0.93, 1.01, 1.17, 1.32, 1.56, 1.87, 2.26, 2.72, 3.35, 3.81, 4.82])
-    x_2 = np.array([0,20.08, 22.50, 25.08, 27.58, 30.08, 32.50, 35.00, 37.67, 40.17, 42.67, 45.00, 47.50, 50.00])
-    y_2 = np.array([1.55,1.55, 1.71, 1.86, 2.10, 2.33, 2.72, 3.11, 3.81, 4.43, 5.28, 6.14, 7.46, 9.24])
-    x_4 = np.array([0,20.00, 22.51, 25.10, 27.69, 30.11, 32.45, 35.04, 37.88, 40.14, 42.65, 45.07, 47.33, 50.08])
-    y_4 = np.array([2.49,2.49, 2.64, 2.87, 3.34, 3.81, 4.43, 5.20, 6.29, 7.38, 9.01, 11.11, 14.29, 19.34])
-    x_10 = np.array([0,20.00, 22.50, 25.08, 28.00, 30.00, 32.50, 34.92, 37.50, 40.17, 42.42, 45.00, 47.17, 50.08])
-    y_10 = np.array([3.27,3.27, 3.74, 4.44, 5.37, 6.07, 7.16, 8.33, 10.04, 12.30, 15.95, 21.17, 27.47, 40.00])
+    x_0 = np.array([0, 20.08, 22.42, 25.08, 27.58, 30.08, 32.58, 34.92, 37.83, 40.00, 42.67, 45.00, 47.00, 49.75])
+    y_0 = np.array([0.93, 0.93, 0.93, 0.93, 1.01, 1.17, 1.32, 1.56, 1.87, 2.26, 2.72, 3.35, 3.81, 4.82])
+    x_2 = np.array([0, 20.08, 22.50, 25.08, 27.58, 30.08, 32.50, 35.00, 37.67, 40.17, 42.67, 45.00, 47.50, 50.00])
+    y_2 = np.array([1.55, 1.55, 1.71, 1.86, 2.10, 2.33, 2.72, 3.11, 3.81, 4.43, 5.28, 6.14, 7.46, 9.24])
+    x_4 = np.array([0, 20.00, 22.51, 25.10, 27.69, 30.11, 32.45, 35.04, 37.88, 40.14, 42.65, 45.07, 47.33, 50.08])
+    y_4 = np.array([2.49, 2.49, 2.64, 2.87, 3.34, 3.81, 4.43, 5.20, 6.29, 7.38, 9.01, 11.11, 14.29, 19.34])
+    x_10 = np.array([0, 20.00, 22.50, 25.08, 28.00, 30.00, 32.50, 34.92, 37.50, 40.17, 42.42, 45.00, 47.17, 50.08])
+    y_10 = np.array([3.27, 3.27, 3.74, 4.44, 5.37, 6.07, 7.16, 8.33, 10.04, 12.30, 15.95, 21.17, 27.47, 40.00])
     x_int = sl_0.phi
 
     if q1_q0 == 0:
-        interpolation = Akima1DInterpolator(x_0, y_0)
-        fd.ks = interpolation(x_int)
+        fd.ks = np.interp(x_int, x_0, y_0)
 
     elif q1_q0 == 0.2:
-        interpolation = Akima1DInterpolator(x_2, y_2)
-        fd.ks = interpolation(x_int)
+        fd.ks = np.interp(x_int, x_2, y_2)
 
     elif q1_q0 == 0.4:
-        interpolation = Akima1DInterpolator(x_4, y_4)
-        fd.ks = interpolation(x_int)
+        fd.ks = np.interp(x_int, x_4, y_4)
 
     elif q1_q0 == 1.0:
-        interpolation = Akima1DInterpolator(x_10, y_10)
-        fd.ks = interpolation(x_int)
+        fd.ks = np.interp(x_int, x_10, y_10)
 
-    elif q1_q0 > 0 and q1_q0 < 0.2:
-        interpolation_1 = Akima1DInterpolator(x_0, y_0)
-        ks_1 = interpolation_1(x_int)
-        interpolation_2 = Akima1DInterpolator(x_2, y_2)
-        ks_2 = interpolation_2(x_int)
-        fd.ks = (((ks_2-ks_1)*q1_q0)/0.2)+ ks_1
+    elif 0 < q1_q0 < 0.2:
+        ks_1 = np.interp(x_int, x_0, y_0)
+        ks_2 = np.interp(x_int, x_2, y_2)
+        fd.ks = (((ks_2 - ks_1) * q1_q0) / 0.2) + ks_1
 
-    elif q1_q0 > 0.2 and q1_q0 < 0.4:
-        interpolation_1 = Akima1DInterpolator(x_2, y_2)
-        ks_1 = interpolation_1(x_int)
-        interpolation_2 = Akima1DInterpolator(x_4, y_4)
-        ks_2 = interpolation_2(x_int)
-        fd.ks = (((ks_2-ks_1)*(q1_q0-0.2))/0.2)+ ks_1
+    elif 0.2 < q1_q0 < 0.4:
+        ks_1 = np.interp(x_int, x_2, y_2)
+        ks_2 = np.interp(x_int, x_4, y_4)
+        fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.2)) / 0.2) + ks_1
 
-    elif q1_q0 > 0.4 and q1_q0 < 1.0:
-        interpolation_1 = Akima1DInterpolator(x_4, y_4)
-        ks_1 = interpolation_1(x_int)
-        interpolation_2 = Akima1DInterpolator(x_10, y_10)
-        ks_2 = interpolation_2(x_int)
-        fd.ks = (((ks_2-ks_1)*(q1_q0-0.4))/0.6)+ ks_1
+    elif 0.4 < q1_q0 < 1.0:
+        ks_1 = np.interp(x_int, x_4, y_4)
+        ks_2 = np.interp(x_int, x_10, y_10)
+        fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.4)) / 0.6) + ks_1
 
-
-
-    #ca
-    if sl_0.cohesion==0:
-        c1_c0 =0
+    # ca
+    if sl_0.cohesion == 0:
+        c1_c0 = 0
     else:
-        c1_c0=sl_1.cohesion/sl_0.cohesion
-    x = np.array([0.000,0.082,0.206,0.298,0.404,0.509,0.598,0.685,0.772])
-    y = np.array([0.627,0.700,0.794,0.855,0.912,0.948,0.968,0.983,0.997])
-    interpolation = Akima1DInterpolator(x, y)
-    ca_c0 = interpolation(c1_c0)
-    fd.ca = ca_c0*sl_0.cohesion
+        c1_c0 = sl_1.cohesion / sl_0.cohesion
+    x = np.array([0.000, 0.082, 0.206, 0.298, 0.404, 0.509, 0.598, 0.685, 0.772])
+    y = np.array([0.627, 0.700, 0.794, 0.855, 0.912, 0.948, 0.968, 0.983, 0.997])
+    ca_c0 = np.interp(c1_c0, x, y)
+
+    fd.ca = ca_c0 * sl_0.cohesion
 
     # Capacity
     a = 1  # ????
     s = 1  # ????
 
-    r=1+(fd.width/fd.length)
-    q_b1= (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
+    r = 1 + (fd.width / fd.length)
+    q_b1 = (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
     q_b2 = (sl_0.unit_dry_weight * h0 * sl_1.nq_factor_1 * sl_1.s_q_1)
     q_b3 = (sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
     fd.q_b = q_b1 + q_b2 + q_b3
     fd.q_ult4 = (r * (2 * fd.ca * (h0 - fd.depth) / fd.width) * a)
-    fd.q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (fd.ks * np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+    fd.q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
+    fd.ks * np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
     fd.q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
     fd.q_ult = fd.q_b + fd.q_ult4 + fd.q_ult5 - fd.q_ult6
 
@@ -846,177 +836,4 @@ def meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0):
         fd.q_ult = fd.q_t
 
     return fd.q_ult
-
-def meyerhoff_and_hanna_capacity_deg(sl_0, sl_1, h0, fd, verbose=0):
-    """
-    Calculates the two-layered foundation capacity according Meyerhoff and Hanna (19XX)
-
-    :param sl_0: Top Soil object
-    :param sl_1: Base Soil object
-    :param h0: Height of top soil layer
-    :param fd: Foundation object
-    :param h_l: Horizontal load parallel to length
-    :param h_b: Horizontal load parallel to width
-    :param vertical_load: Vertical load
-    :param verbose: verbosity
-    :return: ultimate bearing stress
-    """
-
-    sl_0.nq_factor_0 = ((np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_0.phi))))
-    if sl_0.phi == 0:
-        sl_0.nc_factor_0 = 5.14
-    else:
-        sl_0.nc_factor_0 = (sl_0.nq_factor_0 - 1) / np.tan(np.deg2rad(sl_0.phi))
-    sl_0.ng_factor_0 = 2*(sl_0.nq_factor_0 + 1) * np.tan(np.deg2rad(sl_0.phi))
-
-
-    sl_1.nq_factor_1 = ((np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_1.phi))))
-    if sl_1.phi == 0:
-        sl_1.nc_factor_1 = 5.14
-    else:
-        sl_1.nc_factor_1 = (sl_1.nq_factor_1 - 1) / np.tan(np.deg2rad(sl_1.phi))
-    sl_1.ng_factor_1 = 2*(sl_1.nq_factor_1 + 1) * np.tan(np.deg2rad(sl_1.phi))
-
-    if verbose:
-        log("Nc: ", sl_1.nc_factor_1)
-        log("Nq: ", sl_1.nq_factor_1)
-        log("Ng: ", sl_1.ng_factor_1)
-
-    sl_0.kp_0 = (np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2
-    sl_1.kp_1 = (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2
-    # shape factors
-
-    # s_c = 1 + 0.2 * kp * fd.width / fd.length
-    if sl_0.phi >= 10:
-        sl_0.s_c_0 = 1 + 0.2 * sl_0.kp_0 * (fd.width / fd.length)
-        sl_0.s_q_0 = 1.0 + 0.1 * sl_0.kp_0 * (fd.width / fd.length)
-    else:
-        sl_0.s_c_0 = 1 + 0.2 * (fd.width / fd.length)
-        sl_0.s_q_0 = 1.0
-    sl_0.s_g_0 = sl_0.s_q_0
-
-    if sl_1.phi >= 10:
-        sl_1.s_c_1 = 1 + 0.2 * sl_1.kp_1 * (fd.width / fd.length)
-        sl_1.s_q_1 = 1.0 + 0.1 * sl_1.kp_1 * (fd.width / fd.length)
-    else:
-        sl_1.s_c_1 = 1 + 0.2 * (fd.width / fd.length)
-        sl_1.s_q_1 = 1.0
-    sl_1.s_g_1 = sl_1.s_q_1
-
-    """
-    # depth factors
-    d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / fd.width
-    if sl_0.phi > 10:
-        d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / fd.width
-    else:
-        d_q = 1.0
-    d_g = d_q
-
-    # inclination factors:
-    theta_load = np.arctan(horizontal_load / vertical_load)
-    i_c = (1 - theta_load / (np.pi * 0.5)) ** 2
-    i_q = i_c
-    if sl_0.phi > 0:
-        i_g = (1 - theta_load / sl_0.phi_r) ** 2
-    else:
-        i_g = 0
-    """
-
-    # stress at footing base:
-    #q_d = sl_0.unit_dry_weight_0 * fd.depth
-
-    # ks
-    sl_0.q_0=(sl_0.cohesion*sl_0.nc_factor_0)+(0.5*sl_0.unit_dry_weight*fd.width*sl_0.ng_factor_0)
-    sl_1.q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1)
-    q1_q0= sl_1.q_1 / sl_0.q_0
-
-
-    x_0 = np.array([0,20.08, 22.42, 25.08, 27.58, 30.08, 32.58, 34.92, 37.83, 40.00, 42.67, 45.00, 47.00, 49.75])
-    y_0 = np.array([0.93,0.93, 0.93, 0.93, 1.01, 1.17, 1.32, 1.56, 1.87, 2.26, 2.72, 3.35, 3.81, 4.82])
-    x_2 = np.array([0,20.08, 22.50, 25.08, 27.58, 30.08, 32.50, 35.00, 37.67, 40.17, 42.67, 45.00, 47.50, 50.00])
-    y_2 = np.array([1.55,1.55, 1.71, 1.86, 2.10, 2.33, 2.72, 3.11, 3.81, 4.43, 5.28, 6.14, 7.46, 9.24])
-    x_4 = np.array([0,20.00, 22.51, 25.10, 27.69, 30.11, 32.45, 35.04, 37.88, 40.14, 42.65, 45.07, 47.33, 50.08])
-    y_4 = np.array([2.49,2.49, 2.64, 2.87, 3.34, 3.81, 4.43, 5.20, 6.29, 7.38, 9.01, 11.11, 14.29, 19.34])
-    x_10 = np.array([0,20.00, 22.50, 25.08, 28.00, 30.00, 32.50, 34.92, 37.50, 40.17, 42.42, 45.00, 47.17, 50.08])
-    y_10 = np.array([3.27,3.27, 3.74, 4.44, 5.37, 6.07, 7.16, 8.33, 10.04, 12.30, 15.95, 21.17, 27.47, 40.00])
-    x_int = sl_0.phi
-
-    if q1_q0 == 0:
-        interpolation = Akima1DInterpolator(x_0, y_0)
-        fd.ks = interpolation(x_int)
-
-    elif q1_q0 == 0.2:
-        interpolation = Akima1DInterpolator(x_2, y_2)
-        fd.ks = interpolation(x_int)
-
-    elif q1_q0 == 0.4:
-        interpolation = Akima1DInterpolator(x_4, y_4)
-        fd.ks = interpolation(x_int)
-
-    elif q1_q0 == 1.0:
-        interpolation = Akima1DInterpolator(x_10, y_10)
-        fd.ks = interpolation(x_int)
-
-    elif q1_q0 > 0 and q1_q0 < 0.2:
-        interpolation_1 = Akima1DInterpolator(x_0, y_0)
-        ks_1 = interpolation_1(x_int)
-        interpolation_2 = Akima1DInterpolator(x_2, y_2)
-        ks_2 = interpolation_2(x_int)
-        fd.ks = (((ks_2-ks_1)*q1_q0)/0.2)+ ks_1
-
-    elif q1_q0 > 0.2 and q1_q0 < 0.4:
-        interpolation_1 = Akima1DInterpolator(x_2, y_2)
-        ks_1 = interpolation_1(x_int)
-        interpolation_2 = Akima1DInterpolator(x_4, y_4)
-        ks_2 = interpolation_2(x_int)
-        fd.ks = (((ks_2-ks_1)*(q1_q0-0.2))/0.2)+ ks_1
-
-    elif q1_q0 > 0.4 and q1_q0 < 1.0:
-        interpolation_1 = Akima1DInterpolator(x_4, y_4)
-        ks_1 = interpolation_1(x_int)
-        interpolation_2 = Akima1DInterpolator(x_10, y_10)
-        ks_2 = interpolation_2(x_int)
-        fd.ks = (((ks_2-ks_1)*(q1_q0-0.4))/0.6)+ ks_1
-
-
-
-    #ca
-    if sl_0.cohesion==0:
-        c1_c0 =0
-    else:
-        c1_c0=sl_1.cohesion/sl_0.cohesion
-    x = np.array([0.000,0.082,0.206,0.298,0.404,0.509,0.598,0.685,0.772])
-    y = np.array([0.627,0.700,0.794,0.855,0.912,0.948,0.968,0.983,0.997])
-    interpolation = Akima1DInterpolator(x, y)
-    ca_c0 = interpolation(c1_c0)
-    fd.ca = ca_c0*sl_0.cohesion
-
-    # Capacity
-    a = 1  # ????
-    s = 1  # ????
-
-    r=1+(fd.width/fd.length)
-    q_b1= (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
-    q_b2 = (sl_0.unit_dry_weight * h0 * sl_1.nq_factor_1 * sl_1.s_q_1)
-    q_b3 = (sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
-    fd.q_b = q_b1 + q_b2 + q_b3
-    fd.q_ult4 = (r * (2 * fd.ca * (h0 - fd.depth) / fd.width) * a)
-    fd.q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (fd.ks * np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
-    fd.q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
-    fd.q_ult = fd.q_b + fd.q_ult4 + fd.q_ult5 - fd.q_ult6
-
-    # maximum value (qu <= qt)
-    q_t1 = (sl_0.cohesion * sl_0.nc_factor_0 * sl_0.s_c_0)
-    q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-    q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
-    fd.q_t = q_t1 + q_t2 + q_t3
-
-    if fd.q_ult > fd.q_t:
-        fd.q_ult = fd.q_t
-
-    return fd.q_ult
-
-
-
-
 

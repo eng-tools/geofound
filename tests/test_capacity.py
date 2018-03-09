@@ -231,10 +231,10 @@ def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_clay():
     unit_dry_weight_1 = 17.0
     sl_1 = gm.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     h0 = 1.5  # m, height of the crust layer
-    c_a = 0.0
-    k =4.8
+    #c_a = 0.0
+    #k =4.8
 
-    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, c_a, k, fd, verbose=0)
+    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
     # print("q_b= " + str(fd.q_b))
     print("q_ult_1= " + str(fd.q_ult))
     # print("q_t= " + str(fd.q_t))
@@ -259,19 +259,19 @@ def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_sand():
     unit_dry_weight_1 = 17.0
     sl_1 = gm.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     h0 = 1.5  # m, height of the crust layer
-    c_a = 0.0
-    k=1.7
+    #c_a = 0.0
+    #k=1.7
 
-    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, c_a, k, fd, verbose=0)
+    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
     #print("q_b= " +str(fd.q_b))
     #print("q_ult5= " + str(fd.q_ult5))
     print("q_ult_2= " +str(fd.q_ult))
-    assert ct.isclose(fd.q_ult, 154.19, rel_tol=0.001), fd.q_ult
+    assert ct.isclose(fd.q_ult, 158.32, rel_tol=0.001), fd.q_ult
 
 
 def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand():
     # STRONG CLAY OVER WEAK SAND
-    length = 1000000.0  # actually a strip in
+    length = 1000000000.0  # actually a strip in
     width = 1.0
     depth = 0.0
     fd = gm.create_foundation(length=length, width=width, depth=depth)
@@ -286,17 +286,47 @@ def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand():
     unit_dry_weight_1 = 17.0
     sl_1 = gm.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     h0 = 1  # m, height of the crust layer
-    c_a = 54.4
-    k = 1.7
+    #c_a = 54.4
+    #k = 1.7
 
-    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, c_a, k, fd, verbose=0)
+    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
     #print(sl_0.nc_factor_0)
     #print(fd.q_ult)
 
     #print("q_b= " + str(fd.q_b))
+    #print("q1_q0= " + str(fd.q1_q0))
     print("q_ult_3= " + str(fd.q_ult))
-    assert ct.isclose(fd.q_ult, 185.18, rel_tol=0.001), fd.q_ult
+    assert ct.isclose(fd.q_ult, 182.97, rel_tol=0.001), fd.q_ult
 
+# def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand_vs_limitstategeo():
+#     # STRONG CLAY OVER WEAK SAND
+#     length = 1000000.0  # actually a strip in
+#     width = 10.0
+#     depth = 0.0
+#     fd = gm.create_foundation(length=length, width=width, depth=depth)
+#
+#     phi_0 = 0.0
+#     cohesion_0 = 50.0
+#     unit_dry_weight_0 = 19.
+#     sl_0 = gm.create_soil(phi=phi_0, cohesion=cohesion_0, unit_dry_weight=unit_dry_weight_0)
+#
+#     phi_1 = 3.
+#     cohesion_1 = 0.0
+#     unit_dry_weight_1 = 19.
+#     sl_1 = gm.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
+#     h0 = 2.  # m, height of the crust layer
+#     #c_a = 54.4
+#     #k = 1.7
+#
+#     capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
+#     #print(sl_0.nc_factor_0)
+#     #print(fd.q_ult)
+#
+#     #print("q_b= " + str(fd.q_b))
+#     print("q_b_limitstategeo= " + str(fd.q_b))
+#     print("q_t_limitstategeo= " + str(fd.q_t))
+#     print("q_ult_limitstategeo= " + str(fd.q_ult))
+#     assert ct.isclose(fd.q_ult, 26.45, rel_tol=0.001), fd.q_ult
 
 def load_soil_sample_data(sl0):
     """

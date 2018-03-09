@@ -16,7 +16,7 @@ def test_vesics():
     unit_dry_weight = 17
     sl = gm.create_soil(phi, cohesion, unit_dry_weight)
     fd = gm.create_foundation(length, width, depth)
-    capacity.vesics_capacity(sl, fd, verbose=0)
+    capacity.vesics_1975(sl, fd, verbose=0)
     assert ct.isclose(fd.nc_factor, 46.1, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 33.3, rel_tol=0.001)
     assert ct.isclose(fd.ng_factor, 48.0, rel_tol=0.001)
@@ -36,7 +36,7 @@ def test_terzaghi():
     unit_dry_weight = 17
     sl = gm.create_soil(phi, cohesion, unit_dry_weight)
     fd = gm.create_foundation(length, width, depth)
-    capacity.terzaghi_capacity(sl, fd, verbose=0)
+    capacity.terzaghi_1943(sl, fd, verbose=0)
     assert ct.isclose(fd.nc_factor, 57.8, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 41.4, rel_tol=0.001)
     assert ct.isclose(fd.ng_factor, 47.3, rel_tol=0.001)
@@ -56,7 +56,7 @@ def test_terzaghi_again():
     unit_dry_weight = 17  # kN/m3
     sl = gm.create_soil(phi, cohesion, unit_dry_weight)
     fd = gm.create_foundation(length, width, depth)
-    capacity.terzaghi_capacity(sl, fd, verbose=0)
+    capacity.terzaghi_1943(sl, fd, verbose=0)
     print(fd.q_ult)
     assert ct.isclose(fd.nc_factor, 12.86, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 4.45, rel_tol=0.001)
@@ -73,7 +73,7 @@ def test_meyerhoff():
     unit_dry_weight = 17  # kN/m3
     sl = gm.create_soil(phi, cohesion, unit_dry_weight)
     fd = gm.create_foundation(length, width, depth)
-    capacity.meyerhoff_capacity(sl, fd, verbose=0)
+    capacity.meyerhoff_1963(sl, fd, verbose=0)
     print(fd.ng_factor)
     assert ct.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 3.94, rel_tol=0.01)
@@ -90,7 +90,7 @@ def test_hansen():
     unit_dry_weight = 17  # kN/m3
     sl = gm.create_soil(phi, cohesion, unit_dry_weight)
     fd = gm.create_foundation(length, width, depth)
-    capacity.hansen_capacity(sl, fd, verbose=0)
+    capacity.hansen_1970(sl, fd, verbose=0)
     print(fd.q_ult)
     assert ct.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 3.94, rel_tol=0.01)
@@ -115,7 +115,7 @@ def test_nzs_vm4():
     vertical_load = 131.29 * length
     h_eff_b = 1.44
     loc_v_b = 0.848
-    capacity.nzs_vm4_capacity(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
+    capacity.nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
     print(fd.q_ult)
     assert ct.isclose(fd.nc_factor, 5.14, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 1.0, rel_tol=0.01)
@@ -140,7 +140,7 @@ def test_nzs_vm4_load_case_3():
     vertical_load = 154.87 * length
     h_eff_b = 1.78
     loc_v_b = 0.854
-    capacity.nzs_vm4_capacity(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
+    capacity.nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
     print(fd.q_ult)
     assert ct.isclose(fd.nc_factor, 5.14, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 1.0, rel_tol=0.01)
@@ -167,7 +167,7 @@ def test_nzs_vm4_load_case_5():
     vertical_load = 144.48 * length
     h_eff_b = 1.44
     loc_v_b = 0.813
-    capacity.nzs_vm4_capacity(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
+    capacity.nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
 
     assert ct.isclose(fd.nc_factor, 20.72, rel_tol=0.001)
     assert ct.isclose(fd.nq_factor, 10.66, rel_tol=0.01)
@@ -187,12 +187,12 @@ def test_from_encn452_2013():
     unit_dry_weight = 18.0
     sl = gm.create_soil(phi, cohesion, unit_dry_weight)
     fd = gm.create_foundation(length, width, depth)
-    capacity.terzaghi_capacity(sl, fd, verbose=0)
+    capacity.terzaghi_1943(sl, fd, verbose=0)
     print(fd.nc_factor)
     print(fd.q_ult)
     # assert ct.isclose(fd.nc_factor, 6.28, rel_tol=0.001)
     # assert ct.isclose(fd.q_ult, 255.0, rel_tol=0.001)
-    capacity.vesics_capacity(sl, fd, verbose=0)
+    capacity.vesics_1975(sl, fd, verbose=0)
     assert ct.isclose(fd.q_ult, 298.0, rel_tol=0.001)
 
 
@@ -233,7 +233,7 @@ def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_clay():
     # c_a = 0.0
     # k =4.8
 
-    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
+    capacity.meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
     # print("q_b= " + str(fd.q_b))
     print("q_ult_1= " + str(fd.q_ult))
     # print("q_t= " + str(fd.q_t))
@@ -261,7 +261,7 @@ def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_sand():
     # c_a = 0.0
     # k=1.7
 
-    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
+    capacity.meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
     # print("q_b= " +str(fd.q_b))
     # print("q_ult5= " + str(fd.q_ult5))
     print("q_ult_2= " + str(fd.q_ult))
@@ -288,7 +288,7 @@ def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand():
     # c_a = 54.4
     # k = 1.7
 
-    capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
+    capacity.meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
     #print(sl_0.nc_factor_0)
     #print(fd.q_ult)
 
@@ -318,7 +318,7 @@ def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand():
 #     #c_a = 54.4
 #     #k = 1.7
 #
-#     capacity.meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0)
+#     capacity.meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
 #     #print(sl_0.nc_factor_0)
 #     #print(fd.q_ult)
 #

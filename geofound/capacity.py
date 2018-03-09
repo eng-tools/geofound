@@ -12,7 +12,7 @@ from geofound.exceptions import DesignError
 from geofound import models
 
 
-def vesics_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
+def vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
     """
     Calculates the foundation capacity according Vesics(1975)
     #Gunaratne, Manjriker. 2006. "Spread Footings: Analysis and Design."
@@ -123,7 +123,7 @@ def vesics_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
     return fd.q_ult
 
 
-def terzaghi_capacity(sl, fd, round_footing=False, verbose=0):
+def terzaghi_1943(sl, fd, round_footing=False, verbose=0):
     """
     Calculates the foundation capacity according Terzaghi (1943)
     Ref: http://geo.cv.nctu.edu.tw/foundation/
@@ -178,7 +178,7 @@ def terzaghi_capacity(sl, fd, round_footing=False, verbose=0):
     return fd.q_ult
 
 
-def hansen_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
+def hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
     """
     Calculates the foundation capacity according Hansen (1970)
     Ref: http://bestengineeringprojects.com/civil-projects/
@@ -289,7 +289,7 @@ def hansen_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0,
                     fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
 
-def meyerhoff_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
+def meyerhoff_1963(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
     """
     Calculates the foundation capacity according Meyerhoff (1963)
     http://www.engs-comp.com/meyerhof/index.shtml
@@ -355,7 +355,7 @@ def meyerhoff_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
     return fd.q_ult
 
 
-def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, **kwargs):
+def nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, **kwargs):
     """
     calculates the capacity according to
      Appendix B verification method 4 of the NZ building code
@@ -474,10 +474,12 @@ def nzs_vm4_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, 
     return fd.q_ult
 
 
-def salgado_capacity(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
+def salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
     """
     calculates the capacity according to
      THe Engineering of Foundations textbook by Salgado
+
+     ISBN: 0072500581
 
     :param sl: Soil object
     :param fd: Foundation object
@@ -639,26 +641,26 @@ def method_selector(sl, fd, method, **kwargs):
     """
 
     if method == 'vesics':
-        vesics_capacity(sl, fd, **kwargs)
+        vesics_1975(sl, fd, **kwargs)
     elif method == 'nzs':
-        nzs_vm4_capacity(sl, fd, **kwargs)
+        nzs_vm4_2011(sl, fd, **kwargs)
     elif method == 'terzaghi':
-        terzaghi_capacity(sl, fd, **kwargs)
+        terzaghi_1943(sl, fd, **kwargs)
     elif method == 'hansen':
-        hansen_capacity(sl, fd, **kwargs)
+        hansen_1970(sl, fd, **kwargs)
     elif method == 'meyerhoff':
-        meyerhoff_capacity(sl, fd, **kwargs)
+        meyerhoff_1963(sl, fd, **kwargs)
     elif method == 'salgado':
-        salgado_capacity(sl, fd, **kwargs)
+        salgado_2008(sl, fd, **kwargs)
 
 
 available_methods = {
-    "vesics": vesics_capacity,
-    "nzs": nzs_vm4_capacity,
-    "terzaghi": terzaghi_capacity,
-    "hansen": hansen_capacity,
-    "meyerhoff": meyerhoff_capacity,
-    "salgado": salgado_capacity
+    "vesics": vesics_1975,
+    "nzs": nzs_vm4_2011,
+    "terzaghi": terzaghi_1943,
+    "hansen": hansen_1970,
+    "meyerhoff": meyerhoff_1963,
+    "salgado": salgado_2008
 }
 
 
@@ -676,9 +678,9 @@ def capacity_from_spt():
     # phi = 25 + 28 * (N_55 / q)**0.5
 
 
-def meyerhoff_and_hanna_capacity(sl_0, sl_1, h0, fd, verbose=0):
+def meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
     """
-    Calculates the two-layered foundation capacity according Meyerhoff and Hanna (19XX)
+    Calculates the two-layered foundation capacity according Meyerhof and Hanna (1978)
 
     :param sl_0: Top Soil object
     :param sl_1: Base Soil object

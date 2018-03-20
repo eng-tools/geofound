@@ -1,7 +1,11 @@
 from setuptools import setup, find_packages
 
+about = {}
+with open("geofound/__about__.py") as fp:
+    exec(fp.read(), about)
+
 setup(name='geofound',
-      version='0.3.0',
+      version=about['__version__'],
       description='A package to assess the bearing capacity and settlement of geofound',
       url='https://github.com/eng-tools/geofound',
       author='Maxim Millen',

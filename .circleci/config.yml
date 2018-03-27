@@ -29,14 +29,14 @@ jobs:
             codecov
       - store_artifacts:
           path: htmlcov/
-       - run:
+      - run:
           name: install python latest dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
             pip uninstall sfsimodels
             pip install http://github.com/eng-tools/sfsimodels/archive/master.zip
-       - run:
+      - run:
           name: run tests
           command: |
             . venv/bin/activate

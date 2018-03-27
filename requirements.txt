@@ -1,3 +1,8 @@
 sfsimodels>=0.4.5
 numpy
+
+# testing
 pytest
+coveralls
+pytest-cov
+pytest-flake8

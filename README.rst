@@ -1,6 +1,24 @@
-***********
-foundations
-***********
+.. image:: https://travis-ci.org/eng-tools/geofound.svg?branch=master
+   :target: https://travis-ci.org/eng-tools/geofound
+   :alt: Testing Status
+
+.. image:: https://img.shields.io/pypi/v/geofound.svg
+   :target: https://pypi.python.org/pypi/geofound
+   :alt: PyPi version
+
+.. image:: https://coveralls.io/repos/github/eng-tools/geofound/badge.svg
+   :target: https://coveralls.io/github/eng-tools/geofound
+
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg
+    :target: https://github.com/eng-tools/geofound/blob/master/LICENSE
+    :alt: License
+
+.. image:: https://circleci.com/gh/eng-tools/geofound.png?circle-token=:90783a81351a57f5e27913f13aba519f4d1d5457
+    :alt: Build Status
+
+********
+geofound
+********
 
 A Python package to assess the settlement and bearing capacity of foundations.
 

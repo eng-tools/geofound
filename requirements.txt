@@ -3,6 +3,4 @@ numpy
 
 # testing
 pytest
-coveralls
 pytest-cov
-pytest-flake8

@@ -20,7 +20,7 @@ setup(name='geofound',
           'Programming Language :: Python :: 3',
       ],
       packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-      install_requires=['sfsimodels>=0.4.6'],
+      install_requires=['sfsimodels>=0.5.1'],
       # List additional groups of dependencies here (e.g. development
       # dependencies). You can install these using the following syntax,
       # for example:

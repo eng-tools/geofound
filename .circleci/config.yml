@@ -10,11 +10,11 @@ jobs:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "geofound/__about__.py" }}
 
       - run:
-          name: install python dependencies
+          name: install python latest dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r circleci-requirements.txt
             pip install -r deploy-requirements.txt
       - save_cache:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "geofound/__about__.py" }}
@@ -43,7 +43,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r circleci-requirements.txt
             pip install -r deploy-requirements.txt
       - save_cache:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "geofound/__about__.py" }}

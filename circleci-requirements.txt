@@ -1,0 +1,3 @@
+http://github.com/eng-tools/sfsimodels/archive/master.zip
+numpy
+pytest

@@ -34,10 +34,9 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip uninstall sfsimodels
             pip install http://github.com/eng-tools/sfsimodels/archive/master.zip
       - run:
-          name: run tests
+          name: run tests with latest sfsimodels
           command: |
             . venv/bin/activate
             py.test tests
@@ -54,16 +53,12 @@ jobs:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "geofound/__about__.py" }}
 
       - run:
-          name: install python dependencies
+          name: install python minimum dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -r circleci-requirements.txt
+            pip install -r requirements.txt
             pip install -r deploy-requirements.txt
-      - save_cache:
-          key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "geofound/__about__.py" }}
-          paths:
-            - "venv"
 
       - run:
           name: init .pypirc

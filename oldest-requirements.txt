@@ -1,3 +1,3 @@
-sfsimodels==0.4.7
+sfsimodels==0.4.14
 numpy
 pytest

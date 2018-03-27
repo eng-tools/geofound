@@ -10,11 +10,11 @@ jobs:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "geofound/__about__.py" }}
 
       - run:
-          name: install python minimum dependencies
+          name: install python oldest dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -r requirements.txt
+            pip install -r oldest-requirements.txt
             pip install -r deploy-requirements.txt
       - save_cache:
           key: v1-dependency-cache-{{ checksum "setup.py" }}-{{ checksum "geofound/__about__.py" }}
@@ -22,7 +22,7 @@ jobs:
             - "venv"
 
       - run:
-          name: run tests
+          name: run tests with oldest dependencies
           command: |
             . venv/bin/activate
             py.test tests
@@ -36,7 +36,7 @@ jobs:
             . venv/bin/activate
             pip install http://github.com/eng-tools/sfsimodels/archive/master.zip
       - run:
-          name: run tests with latest sfsimodels
+          name: run tests with latest dependencies
           command: |
             . venv/bin/activate
             py.test tests

@@ -3,7 +3,7 @@ import numpy as np
 from geofound.output import log
 
 
-def schmertmann_settlement(sp, fd, load, youngs_modulus_soil, **kwargs):
+def settlement_schmertmann(sp, fd, load, youngs_modulus_soil, **kwargs):
     """
     Calculates the settlement of a shallow foundation (Schmertmann, 19XX).
 

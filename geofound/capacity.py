@@ -12,7 +12,7 @@ from geofound.exceptions import DesignError
 from geofound import models
 
 
-def vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
+def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
     """
     Calculates the foundation capacity according Vesics(1975)
     #Gunaratne, Manjriker. 2006. "Spread Footings: Analysis and Design."
@@ -123,7 +123,7 @@ def vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ver
     return fd.q_ult
 
 
-def terzaghi_1943(sl, fd, round_footing=False, verbose=0):
+def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0):
     """
     Calculates the foundation capacity according Terzaghi (1943)
     Ref: http://geo.cv.nctu.edu.tw/foundation/
@@ -178,7 +178,7 @@ def terzaghi_1943(sl, fd, round_footing=False, verbose=0):
     return fd.q_ult
 
 
-def hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
+def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0):
     """
     Calculates the foundation capacity according Hansen (1970)
     Ref: http://bestengineeringprojects.com/civil-projects/
@@ -289,7 +289,7 @@ def hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ver
                     fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
 
-def meyerhoff_1963(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
+def capacity_meyerhoff_1963(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
     """
     Calculates the foundation capacity according Meyerhoff (1963)
     http://www.engs-comp.com/meyerhof/index.shtml
@@ -355,7 +355,7 @@ def meyerhoff_1963(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0):
     return fd.q_ult
 
 
-def nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, **kwargs):
+def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, **kwargs):
     """
     calculates the capacity according to
      Appendix B verification method 4 of the NZ building code
@@ -474,7 +474,7 @@ def nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, **kw
     return fd.q_ult
 
 
-def salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
+def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
     """
     calculates the capacity according to
      THe Engineering of Foundations textbook by Salgado
@@ -554,7 +554,7 @@ def salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
     return fd.q_ult
 
 
-def size_footing(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **kwargs):
+def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **kwargs):
     """
     Determine the size of a footing given an aspect ratio and a load
     :param sl: Soil object
@@ -578,7 +578,7 @@ def size_footing(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **k
         fd.length = length_to_width * fd.width
         if use_depth_to_width:
             fd.depth = depth_to_width * fd.width
-        method_selector(sl, fd, method)
+        capacity_method_selector(sl, fd, method)
         q = fd.q_ult
 
         bearing_capacity = q * fd.length * fd.width
@@ -601,7 +601,7 @@ def size_footing(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **k
         fd.length = length_to_width * fd.width
         if use_depth_to_width:
             fd.depth = depth_to_width * fd.width
-        method_selector(sl, fd, method)
+        capacity_method_selector(sl, fd, method)
         q = fd.q_ult
 
         capacity = q * fd.length * fd.width
@@ -622,7 +622,7 @@ def size_footing(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **k
             fd.length = length_to_width * fd.width
             if use_depth_to_width:
                 fd.depth = depth_to_width * fd.width
-            method_selector(sl, fd, method)
+            capacity_method_selector(sl, fd, method)
             break
         if fs == len(fs_array) - 1:
             DesignError("No suitable foundation sizes could be determined!")
@@ -630,7 +630,7 @@ def size_footing(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **k
     return fd
 
 
-def method_selector(sl, fd, method, **kwargs):
+def capacity_method_selector(sl, fd, method, **kwargs):
     """
     Calculates the bearing capacity of a foundation on soil using the specified method.
     :param sl: Soil Object
@@ -641,26 +641,26 @@ def method_selector(sl, fd, method, **kwargs):
     """
 
     if method == 'vesics':
-        vesics_1975(sl, fd, **kwargs)
+        capacity_vesics_1975(sl, fd, **kwargs)
     elif method == 'nzs':
-        nzs_vm4_2011(sl, fd, **kwargs)
+        capacity_nzs_vm4_2011(sl, fd, **kwargs)
     elif method == 'terzaghi':
-        terzaghi_1943(sl, fd, **kwargs)
+        capacity_terzaghi_1943(sl, fd, **kwargs)
     elif method == 'hansen':
-        hansen_1970(sl, fd, **kwargs)
+        capacity_hansen_1970(sl, fd, **kwargs)
     elif method == 'meyerhoff':
-        meyerhoff_1963(sl, fd, **kwargs)
+        capacity_meyerhoff_1963(sl, fd, **kwargs)
     elif method == 'salgado':
-        salgado_2008(sl, fd, **kwargs)
+        capacity_salgado_2008(sl, fd, **kwargs)
 
 
 available_methods = {
-    "vesics": vesics_1975,
-    "nzs": nzs_vm4_2011,
-    "terzaghi": terzaghi_1943,
-    "hansen": hansen_1970,
-    "meyerhoff": meyerhoff_1963,
-    "salgado": salgado_2008
+    "vesics": capacity_vesics_1975,
+    "nzs": capacity_nzs_vm4_2011,
+    "terzaghi": capacity_terzaghi_1943,
+    "hansen": capacity_hansen_1970,
+    "meyerhoff": capacity_meyerhoff_1963,
+    "salgado": capacity_salgado_2008
 }
 
 
@@ -678,7 +678,7 @@ def capacity_from_spt():
     # phi = 25 + 28 * (N_55 / q)**0.5
 
 
-def meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
+def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
     """
     Calculates the two-layered foundation capacity according Meyerhof and Hanna (1978)
 

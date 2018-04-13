@@ -1,7 +1,5 @@
-from geofound import models as gm
-from geofound import settlement
 
-from geofound import checking_tools as ct
+import geofound
 
 
 def test_schmertmann():
@@ -15,13 +13,13 @@ def test_schmertmann():
     phi = 0.0
     cohesion = 20
     unit_dry_weight = 17
-    sl = gm.create_soil(phi, cohesion, unit_dry_weight)
-    fd = gm.create_foundation(length, width, depth)
+    sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
+    fd = geofound.create_foundation(length, width, depth)
     load = 1000 + (23.5 * 0.5 + dry_unit_dry_weight * 0.3) * length * width  # kN
     youngs_modulus_soil = 3 * 6e3  # kPa
-    sett = settlement.schmertmann_settlement(sl, fd, load, youngs_modulus_soil, unit_sat_weight=19.8, gwl=0.8)
+    sett = geofound.settlement_schmertmann(sl, fd, load, youngs_modulus_soil, unit_sat_weight=19.8, gwl=0.8)
 
-    assert ct.isclose(sett, 0.017, rel_tol=0.01)
+    assert geofound.isclose(sett, 0.017, rel_tol=0.01)
 
 
 def test_schmertmann_long_foundation():
@@ -35,13 +33,13 @@ def test_schmertmann_long_foundation():
     phi = 0.0
     cohesion = 20
     unit_dry_weight = 17
-    sl = gm.create_soil(phi, cohesion, unit_dry_weight)
-    fd = gm.create_foundation(length, width, depth)
+    sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
+    fd = geofound.create_foundation(length, width, depth)
     load = 1000 + (23.5 * 0.5 + dry_unit_dry_weight * 0.3) * length * width  # kN
     youngs_modulus_soil = 3 * 6e3  # kPa
-    sett = settlement.schmertmann_settlement(sl, fd, load, youngs_modulus_soil, unit_sat_weight=19.8, gwl=0.8)
+    sett = geofound.settlement_schmertmann(sl, fd, load, youngs_modulus_soil, unit_sat_weight=19.8, gwl=0.8)
     print(sett)
-    assert ct.isclose(sett, 0.00153, rel_tol=0.01)
+    assert geofound.isclose(sett, 0.00153, rel_tol=0.01)
 
 
 if __name__ == '__main__':

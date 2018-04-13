@@ -53,7 +53,7 @@ Examples
 
     sl.unit_sat_weight = 18.5
 
-    q_lim = geofound.capacity.vesics_1975(sl, fd)
+    q_lim = geofound.capacity.capacity_vesics_1975(sl, fd)
     p_max = q_lim * length * width
 
     print(' ')
@@ -66,7 +66,7 @@ and for settlement.
 .. code-block:: python
 
     load = 21484
-    s = geofound.settlement.schmertmann_settlement(sl, fd, load, youngs_modulus_soil)
+    s = geofound.settlement.settlement_schmertmann(sl, fd, load, youngs_modulus_soil)
     print(' ')
     print('Settlement is si = ' + str(round(s,2)) + ' m')
 

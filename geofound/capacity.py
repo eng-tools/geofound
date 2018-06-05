@@ -801,6 +801,8 @@ def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
         ks_1 = np.interp(x_int, x_4, y_4)
         ks_2 = np.interp(x_int, x_10, y_10)
         fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.4)) / 0.6) + ks_1
+    else:
+        raise DesignError("Cannot compute 'ks', bearing ratio out-of-range (q1_q0 = %.3f) required: 0-1." % q1_q0)
 
     # ca
     if sl_0.cohesion == 0:

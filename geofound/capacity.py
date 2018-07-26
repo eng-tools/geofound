@@ -806,34 +806,38 @@ def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
     y_10 = np.array([3.27, 3.27, 3.74, 4.44, 5.37, 6.07, 7.16, 8.33, 10.04, 12.30, 15.95, 21.17, 27.47, 40.00])
     x_int = sl_0.phi
 
-    if q1_q0 == 0:
-        fd.ks = np.interp(x_int, x_0, y_0)
-
-    elif q1_q0 == 0.2:
-        fd.ks = np.interp(x_int, x_2, y_2)
-
-    elif q1_q0 == 0.4:
-        fd.ks = np.interp(x_int, x_4, y_4)
-
-    elif q1_q0 == 1.0:
-        fd.ks = np.interp(x_int, x_10, y_10)
-
-    elif 0 < q1_q0 < 0.2:
-        ks_1 = np.interp(x_int, x_0, y_0)
-        ks_2 = np.interp(x_int, x_2, y_2)
-        fd.ks = (((ks_2 - ks_1) * q1_q0) / 0.2) + ks_1
-
-    elif 0.2 < q1_q0 < 0.4:
-        ks_1 = np.interp(x_int, x_2, y_2)
-        ks_2 = np.interp(x_int, x_4, y_4)
-        fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.2)) / 0.2) + ks_1
-
-    elif 0.4 < q1_q0 < 1.0:
-        ks_1 = np.interp(x_int, x_4, y_4)
-        ks_2 = np.interp(x_int, x_10, y_10)
-        fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.4)) / 0.6) + ks_1
+    if sl_0.phi < 1:
+        fd.ks = 0
     else:
-        raise DesignError("Cannot compute 'ks', bearing ratio out-of-range (q1_q0 = %.3f) required: 0-1." % q1_q0)
+
+        if q1_q0 == 0:
+            fd.ks = np.interp(x_int, x_0, y_0)
+
+        elif q1_q0 == 0.2:
+            fd.ks = np.interp(x_int, x_2, y_2)
+
+        elif q1_q0 == 0.4:
+            fd.ks = np.interp(x_int, x_4, y_4)
+
+        elif q1_q0 == 1.0:
+            fd.ks = np.interp(x_int, x_10, y_10)
+
+        elif 0 < q1_q0 < 0.2:
+            ks_1 = np.interp(x_int, x_0, y_0)
+            ks_2 = np.interp(x_int, x_2, y_2)
+            fd.ks = (((ks_2 - ks_1) * q1_q0) / 0.2) + ks_1
+
+        elif 0.2 < q1_q0 < 0.4:
+            ks_1 = np.interp(x_int, x_2, y_2)
+            ks_2 = np.interp(x_int, x_4, y_4)
+            fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.2)) / 0.2) + ks_1
+
+        elif 0.4 < q1_q0 < 1.0:
+            ks_1 = np.interp(x_int, x_4, y_4)
+            ks_2 = np.interp(x_int, x_10, y_10)
+            fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.4)) / 0.6) + ks_1
+        else:
+            raise DesignError("Cannot compute 'ks', bearing ratio out-of-range (q1_q0 = %.3f) required: 0-1." % q1_q0)
 
     # ca
     if sl_0.cohesion == 0:

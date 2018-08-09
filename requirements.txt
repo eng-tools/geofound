@@ -1,4 +1,4 @@
-sfsimodels>=0.7.11
+sfsimodels>=0.7.12
 numpy
 
 # testing

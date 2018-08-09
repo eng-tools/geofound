@@ -57,8 +57,7 @@ def create_soil(phi=0.0, cohesion=0.0, unit_dry_weight=0.0, pw=9800):
     :param pw: specific weight of water
     :return: A Soil object.
     """
-    soil = Soil()
-    soil._pw = pw
+    soil = Soil(pw=pw)
     soil.phi = phi
     soil.cohesion = cohesion
     soil.unit_dry_weight = unit_dry_weight

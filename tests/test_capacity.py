@@ -377,7 +377,7 @@ def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
     # Case 1: GWL at surface
     gwl=0.0
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
-    geofound.capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
     assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
@@ -385,7 +385,7 @@ def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
     # Case 2: GWL at between foundation depth and surface
     gwl = 0.5
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
-    geofound.capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
     assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
@@ -393,7 +393,7 @@ def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
     # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
     gwl = 1.8
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
-    geofound.capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
     assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
@@ -401,7 +401,7 @@ def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
     # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
     gwl = 4.8
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
-    geofound.capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.03
     corrected_2layer = fd.q_ult * correction
     assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
@@ -409,7 +409,7 @@ def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
     # Case 5: GWL beyond foundation depth plus width
     gwl = 20.
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
-    geofound.capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     # print("q_b= " +str(fd.q_b))
     # print("q_ult5= " + str(fd.q_ult5))
     #print("q_ult= ", fd.q_ult/1000)

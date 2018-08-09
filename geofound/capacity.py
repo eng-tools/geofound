@@ -757,7 +757,7 @@ def capacity_from_spt():
     # phi = 25 + 28 * (N_55 / q)**0.5
 
 
-def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
+def deprecated_capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
     """
     Calculates the two-layered foundation capacity according Meyerhof and Hanna (1978)
 
@@ -925,7 +925,7 @@ def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
     return fd.q_ult
 
 
-def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
+def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=1e6, verbose=0):
     """
     Calculates the two-layered foundation capacity according Meyerhof and Hanna (1978)
 
@@ -963,7 +963,6 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
     sl_1.kp_1 = (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2
 
     # shape factors
-    # s_c = 1 + 0.2 * kp * fd.width / fd.length
     if sl_0.phi >= 10:
         sl_0.s_c_0 = 1 + 0.2 * sl_0.kp_0 * (fd.width / fd.length)
         sl_0.s_q_0 = 1.0 + 0.1 * sl_0.kp_0 * (fd.width / fd.length)
@@ -1008,14 +1007,14 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         unit_eff_weight_0_at_interface = sl_0.unit_bouy_weight
         unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
 
-    elif gwl > 0 and gwl <= fd.depth:  # Case 2: GWL at between foundation depth and surface
+    elif 0 < gwl <= fd.depth:  # Case 2: GWL at between foundation depth and surface
         q_at_interface = (sl_0.unit_dry_weight * gwl) + (sl_0.unit_bouy_weight * (h0 - gwl))
         q_d = (sl_0.unit_dry_weight * gwl) + (sl_0.unit_bouy_weight * (fd.depth - gwl))
         unit_eff_weight_0_at_fd_depth = q_d / fd.depth
         unit_eff_weight_0_at_interface = sl_0.unit_bouy_weight
         unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
 
-    elif gwl > fd.depth and gwl <= fd.width + fd.depth:
+    elif fd.depth < gwl <= fd.width + fd.depth:
         if gwl < h0:  # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
 
             average_unit_bouy_weight = sl_0.unit_bouy_weight + (
@@ -1026,7 +1025,7 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             unit_eff_weight_0_at_interface = average_unit_bouy_weight
             unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
 
-        elif gwl > h0:  # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
+        else:  # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
             average_unit_bouy_weight = sl_1.unit_bouy_weight + (
             ((gwl - h0) / fd.width) * (sl_1.unit_dry_weight - sl_1.unit_bouy_weight))
 
@@ -1035,17 +1034,13 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
             unit_eff_weight_1_below_foundation = average_unit_bouy_weight
 
-        elif gwl == h0:  # Case 4a: join with above
-            q_at_interface = sl_0.unit_dry_weight * h0
-            unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
-            unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
-            unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
-
     elif gwl > fd.depth + fd.width:  # Case 5: GWL beyond foundation depth plus width
         q_at_interface = sl_0.unit_dry_weight * h0
         unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
         unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
         unit_eff_weight_1_below_foundation = sl_1.unit_dry_weight
+    else:
+        raise ValueError("Could not interpret inputs")  # never reached
 
     # maximum value (qu <= qt)
     q_ult6 = q_at_interface - unit_eff_weight_0_at_fd_depth * fd.depth

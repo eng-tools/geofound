@@ -48,15 +48,17 @@ def create_foundation(length, width, depth=0.0, height=0.0):
     return a_foundation
 
 
-def create_soil(phi=0.0, cohesion=0.0, unit_dry_weight=0.0):
+def create_soil(phi=0.0, cohesion=0.0, unit_dry_weight=0.0, pw=9800):
     """
     Can define a Soil object.
     :param phi: Internal friction angle
     :param cohesion: Cohesion of soil
     :param unit_dry_weight: The dry unit weight of the soil.
+    :param pw: specific weight of water
     :return: A Soil object.
     """
     soil = Soil()
+    soil._pw = pw
     soil.phi = phi
     soil.cohesion = cohesion
     soil.unit_dry_weight = unit_dry_weight

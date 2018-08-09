@@ -1008,7 +1008,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1)
 
         # qb
-        q_b2 = (sl_0.unit_bouy_weight * h0 * sl_1.nq_factor_1 * sl_1.s_q_1)
+        q = sl_0.unit_bouy_weight * h0
+        q_b2 = (q * sl_1.nq_factor_1 * sl_1.s_q_1)
         q_b3 = (sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
         # qu
@@ -1019,6 +1020,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         # maximum value (qu <= qt)
         q_t2 = (sl_0.unit_bouy_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
         q_t3 = (sl_0.unit_bouy_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+        unit_eff_weight_0_at_fd_depth = sl_0.unit_bouy_weight
+        unit_eff_weight_0_at_interface = sl_0.unit_bouy_weight
 
     elif gwl > 0 and gwl <= fd.depth:  # Case 2: GWL at between foundation depth and surface
 
@@ -1037,8 +1040,10 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
 
         # maximum value (qu <= qt)
         q_d = (sl_0.unit_dry_weight * gwl) + (sl_0.unit_bouy_weight * (fd.depth - gwl))
-        q_t2 = q_d * sl_0.nq_factor_0 * sl_0.s_q_0
-        q_t3 = (sl_0.unit_bouy_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+        # q_t2 = q_d * sl_0.nq_factor_0 * sl_0.s_q_0
+        # q_t3 = (sl_0.unit_bouy_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+        unit_eff_weight_0_at_fd_depth = q_d / fd.depth
+        unit_eff_weight_0_at_interface = sl_0.unit_bouy_weight
 
     elif gwl > fd.depth and gwl <= fd.width + fd.depth:
         if gwl < h0:  # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
@@ -1060,8 +1065,10 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             q_ult6 = (sl_0.unit_dry_weight * (gwl - fd.depth)) + (sl_0.unit_bouy_weight * (h0 - gwl))
 
             # maximum value (qu <= qt)
-            q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-            q_t3 = (average_unit_bouy_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+            # q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
+            # q_t3 = (average_unit_bouy_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+            unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
+            unit_eff_weight_0_at_interface = average_unit_bouy_weight
 
         elif gwl > h0:  # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
 
@@ -1072,7 +1079,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * average_unit_bouy_weight * fd.width * sl_1.ng_factor_1)
 
             # qb
-            q_b2 = (sl_0.unit_dry_weight * h0 * sl_1.nq_factor_1 * sl_1.s_q_1)
+            q = sl_0.unit_dry_weight * h0
+            q_b2 = (q * sl_1.nq_factor_1 * sl_1.s_q_1)
             q_b3 = (average_unit_bouy_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
             # qu
@@ -1081,8 +1089,10 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
 
             # maximum value (qu <= qt)
-            q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-            q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+            # q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
+            # q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+            unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
+            unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
 
         elif gwl == h0:  # Case 4a: join with above
 
@@ -1099,15 +1109,23 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
 
             # maximum value (qu <= qt)
-            q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-            q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+            # q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
+            # q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+            unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
+            unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
 
     elif gwl > fd.depth + fd.width:  # Case 5: GWL beyond foundation depth plus width
+
+        unit_weight_above_fd_depth = sl_0.unit_dry_weight
+        unit_eff_weight_0 = sl_0.unit_dry_weight
+        unit_eff_weight_1 = sl_1.unit_dry_weight
+
         q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
         q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1)
 
         # qb
-        q_b2 = (sl_0.unit_dry_weight * h0 * sl_1.nq_factor_1 * sl_1.s_q_1)
+        q = sl_0.unit_dry_weight * h0
+        q_b2 = (q * sl_1.nq_factor_1 * sl_1.s_q_1)
         q_b3 = (sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
         # qu
@@ -1115,9 +1133,14 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
         q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
 
-        # maximum value (qu <= qt)
-        q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-        q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+        # q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
+        # q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+        unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
+        unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
+
+    # maximum value (qu <= qt)
+    q_t2 = (unit_eff_weight_0_at_fd_depth * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
+    q_t3 = (unit_eff_weight_0_at_interface * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
 
     # qb
     q_b1 = (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)

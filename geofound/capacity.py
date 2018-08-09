@@ -1004,7 +1004,7 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
 
     if gwl == 0:  # case 1: GWL at surface
 
-        q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_bouy_weight * fd.width * sl_0.ng_factor_0)
+        # q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_bouy_weight * fd.width * sl_0.ng_factor_0)
         q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1)
 
         # qb
@@ -1013,8 +1013,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         q_b3 = (sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
         # qu
-        q_ult5 = r * (sl_0.unit_bouy_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-        np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+        # q_ult5 = r * (sl_0.unit_bouy_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
+        # np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
         q_ult6 = (sl_0.unit_bouy_weight * (h0 - fd.depth))
 
         # maximum value (qu <= qt)
@@ -1025,7 +1025,7 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
 
     elif gwl > 0 and gwl <= fd.depth:  # Case 2: GWL at between foundation depth and surface
 
-        q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_bouy_weight * fd.width * sl_0.ng_factor_0)
+        # q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_bouy_weight * fd.width * sl_0.ng_factor_0)
         q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1)
 
         # qb
@@ -1034,8 +1034,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         q_b3 = (sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
         # qu
-        q_ult5 = r * (sl_0.unit_bouy_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-        np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+        # q_ult5 = r * (sl_0.unit_bouy_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
+        # np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
         q_ult6 = (sl_0.unit_bouy_weight * (h0 - fd.depth))
 
         # maximum value (qu <= qt)
@@ -1051,7 +1051,7 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             average_unit_bouy_weight = sl_0.unit_bouy_weight + (
             ((gwl - fd.depth) / fd.width) * (sl_0.unit_dry_weight - sl_0.unit_bouy_weight))
 
-            q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * average_unit_bouy_weight * fd.width * sl_0.ng_factor_0)
+            # q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * average_unit_bouy_weight * fd.width * sl_0.ng_factor_0)
             q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1)
 
             # qb
@@ -1060,8 +1060,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             q_b3 = (sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
             # qu
-            q_ult5 = r * (average_unit_bouy_weight * ((h0 - fd.depth) ** 2)) * (
-            1 + (2 * fd.depth / (h0 - fd.depth))) * (np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+            # q_ult5 = r * (average_unit_bouy_weight * ((h0 - fd.depth) ** 2)) * (
+            # 1 + (2 * fd.depth / (h0 - fd.depth))) * (np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
             q_ult6 = (sl_0.unit_dry_weight * (gwl - fd.depth)) + (sl_0.unit_bouy_weight * (h0 - gwl))
 
             # maximum value (qu <= qt)
@@ -1075,7 +1075,7 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             average_unit_bouy_weight = sl_1.unit_bouy_weight + (
             ((gwl - h0) / fd.width) * (sl_1.unit_dry_weight - sl_1.unit_bouy_weight))
 
-            q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
+            # q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
             q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * average_unit_bouy_weight * fd.width * sl_1.ng_factor_1)
 
             # qb
@@ -1084,8 +1084,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             q_b3 = (average_unit_bouy_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
             # qu
-            q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-            np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+            # q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
+            # np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
             q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
 
             # maximum value (qu <= qt)
@@ -1096,7 +1096,7 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
 
         elif gwl == h0:  # Case 4a: join with above
 
-            q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
+            # q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
             q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1)
 
             # qb
@@ -1104,8 +1104,8 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
             q_b3 = (sl_1.unit_bouy_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
             # qu
-            q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-            np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+            # q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
+            # np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
             q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
 
             # maximum value (qu <= qt)
@@ -1120,7 +1120,7 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         unit_eff_weight_0 = sl_0.unit_dry_weight
         unit_eff_weight_1 = sl_1.unit_dry_weight
 
-        q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
+
         q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1)
 
         # qb
@@ -1129,8 +1129,6 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         q_b3 = (sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
 
         # qu
-        q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-        np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
         q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
 
         # q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
@@ -1139,6 +1137,9 @@ def capacity_meyerhof_and_hanna_1978_wtl(sl_0, sl_1, h0, fd, gwl, verbose=0):
         unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
 
     # maximum value (qu <= qt)
+    q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * unit_eff_weight_0_at_interface * fd.width * sl_0.ng_factor_0)
+    q_ult5 = r * (unit_eff_weight_0_at_interface * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
+        np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
     q_t2 = (unit_eff_weight_0_at_fd_depth * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
     q_t3 = (unit_eff_weight_0_at_interface * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
 

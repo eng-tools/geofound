@@ -1,4 +1,5 @@
 import geofound
+from geofound import models
 
 
 def test_vesics():
@@ -456,6 +457,40 @@ def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
     correction = 1.0
     corrected_2layer = fd.q_ult * correction
     assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof/1000)
+
+
+def test_capacity_sp_meyerhof_and_hanna_1978():
+    length = 1000000.0  # actually a strip in
+    width = 16.0
+    depth = 0.0
+    fd = geofound.create_foundation(length=length, width=width, depth=depth)
+
+    phi_0 = 0.0
+    cohesion_0 = 50000
+    unit_dry_weight_0 = 18000
+    sl_0 = geofound.create_soil(phi=phi_0, cohesion=cohesion_0, unit_dry_weight=unit_dry_weight_0)
+    sl_0.unit_sat_weight = 20000
+
+    phi_1 = 25
+    cohesion_1 = 0.0
+    unit_dry_weight_1 = 18000
+    sl_1 = geofound.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
+    sl_1.unit_sat_weight = 20000
+    h0 = 2.0  # m, height of the crust layer
+    # c_a = 0.0
+    # k=1.7
+
+    # Case 1: GWL at surface
+    gwl = 2.0
+    sp = models.SoilProfile()
+    sp.add_layer(0, sl_0)
+    sp.add_layer(h0, sl_1)
+    q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
+    # q_ult_meyerhof_and_hanna = geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    geofound.capacity_sp_meyerhof_and_hanna_1978(sp, fd, gwl=gwl, verbose=0)
+    correction_lower_layer = 1.1
+    expected = q_ult_meyerhof * correction_lower_layer
+    assert geofound.isclose(expected, fd.q_ult, rel_tol=0.01), (expected / 1000, fd.q_ult / 1000)
 
 
 # def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand_vs_limitstategeo():

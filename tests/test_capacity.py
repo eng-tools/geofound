@@ -1,5 +1,4 @@
 import geofound
-from geofound import models
 
 
 def test_vesics():
@@ -55,13 +54,14 @@ def test_terzaghi_again():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_terzaghi_1943(sl, fd, verbose=0)
+    print(fd.q_ult)
     assert geofound.isclose(fd.nc_factor, 12.86, rel_tol=0.001)
     assert geofound.isclose(fd.nq_factor, 4.45, rel_tol=0.001)
     assert geofound.isclose(fd.ng_factor, 2.168, rel_tol=0.001)
     assert geofound.isclose(fd.q_ult, 515.0, rel_tol=0.001)
 
 
-def test_meyerhoff():
+def test_meyerhof():
     length = 2
     width = 2
     depth = 2
@@ -71,13 +71,14 @@ def test_meyerhoff():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_meyerhof_1963(sl, fd, gwl=1000, verbose=0)
+    print(fd.ng_factor)
     assert geofound.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
     assert geofound.isclose(fd.nq_factor, 3.94, rel_tol=0.01)
     assert geofound.isclose(fd.ng_factor, 1.13, rel_tol=0.01)
     assert geofound.isclose(fd.q_ult, 573.3, rel_tol=0.001)
 
 
-def test_meyerhoff_using_fabrizio_problem1():
+def test_meyerhof_using_fabrizio_problem1():
     """
     http:
 
@@ -98,7 +99,7 @@ def test_meyerhoff_using_fabrizio_problem1():
     assert geofound.isclose(fd.q_ult, 526000., rel_tol=0.001), fd.q_ult
 
 
-def test_meyerhoff_using_fabrizio_problem2():
+def test_meyerhof_using_fabrizio_problem2():
     """
     http:
 
@@ -173,7 +174,8 @@ def test_nzs_vm4():
     vertical_load = 131.29 * length
     h_eff_b = 1.44
     loc_v_b = 0.848
-    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
+    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
+                                   verbose=0)
     assert geofound.isclose(fd.nc_factor, 5.14, rel_tol=0.001)
     assert geofound.isclose(fd.nq_factor, 1.0, rel_tol=0.01)
     assert geofound.isclose(fd.ng_factor, 0.0, rel_tol=0.01)
@@ -197,7 +199,8 @@ def test_nzs_vm4_load_case_3():
     vertical_load = 154.87 * length
     h_eff_b = 1.78
     loc_v_b = 0.854
-    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
+    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
+                                   verbose=0)
     assert geofound.isclose(fd.nc_factor, 5.14, rel_tol=0.001)
     assert geofound.isclose(fd.nq_factor, 1.0, rel_tol=0.01)
     assert geofound.isclose(fd.ng_factor, 0.0, rel_tol=0.01)
@@ -223,7 +226,8 @@ def test_nzs_vm4_load_case_5():
     vertical_load = 144.48 * length
     h_eff_b = 1.44
     loc_v_b = 0.813
-    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b, verbose=0)
+    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
+                                   verbose=0)
 
     assert geofound.isclose(fd.nc_factor, 20.72, rel_tol=0.001)
     assert geofound.isclose(fd.nq_factor, 10.66, rel_tol=0.01)
@@ -244,8 +248,6 @@ def test_from_encn452_2013():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_terzaghi_1943(sl, fd, verbose=0)
-    # assert geofound.isclose(fd.nc_factor, 6.28, rel_tol=0.001)
-    # assert geofound.isclose(fd.q_ult, 255.0, rel_tol=0.001)
     geofound.capacity_vesics_1975(sl, fd, verbose=0)
     assert geofound.isclose(fd.q_ult, 298.0, rel_tol=0.001)
 
@@ -261,13 +263,14 @@ def test_size_foundations():
         for vertical_load in vertical_loads:
             for method in methods:
                 sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
-                fd = geofound.size_footing_for_capacity(sl, vertical_load=vertical_load, fos=fos, method=method, length_to_width=2)
+                fd = geofound.size_footing_for_capacity(sl, vertical_load=vertical_load, fos=fos, method=method,
+                                                        length_to_width=2)
                 f_capacity = fd.length * fd.width * fd.q_ult
                 actual_fos = f_capacity / vertical_load
                 assert geofound.isclose(actual_fos, fos, rel_tol=0.1), (fos, vertical_load, method)
 
 
-def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_clay():
+def test_meyerhof_and_hanna_capacity_strong_sand_over_weak_clay():
     # STRONG SAND OVER WEAK CLAY
     length = 1000000.0  # actually a strip in
     width = 1.0
@@ -284,18 +287,13 @@ def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_clay():
     unit_dry_weight_1 = 17.0
     sl_1 = geofound.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     h0 = 1.5  # m, height of the crust layer
-    # c_a = 0.0
-    # k =4.8
 
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
-    # print("q_b= " + str(fd.q_b))
-    # print("q_ult_1= " + str(fd.q_ult))
-    # print("q_t= " + str(fd.q_t))
 
     assert geofound.isclose(fd.q_ult, 264.74, rel_tol=0.001), fd.q_ult
 
 
-def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_sand():
+def test_meyerhof_and_hanna_capacity_strong_sand_over_weak_sand():
     # STRONG SAND OVER WEAK SAND
     length = 1000000.0  # actually a strip in
     width = 1.0
@@ -312,17 +310,12 @@ def test_meyerhoff_and_hanna_capacity_strong_sand_over_weak_sand():
     unit_dry_weight_1 = 17.0
     sl_1 = geofound.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     h0 = 1.5  # m, height of the crust layer
-    # c_a = 0.0
-    # k=1.7
 
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
-    # print("q_b= " +str(fd.q_b))
-    # print("q_ult5= " + str(fd.q_ult5))
-    # print("q_ult_2= " + str(fd.q_ult))
     assert geofound.isclose(fd.q_ult, 158.32, rel_tol=0.001), fd.q_ult
 
 
-def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand():
+def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand():
     # STRONG CLAY OVER WEAK SAND
     length = 1000000000.0  # actually a strip in
     width = 1.0
@@ -339,19 +332,12 @@ def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand():
     unit_dry_weight_1 = 17.0
     sl_1 = geofound.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     h0 = 1  # m, height of the crust layer
-    # c_a = 54.4
-    # k = 1.7
 
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
-    #print(sl_0.nc_factor_0)
-    #print(fd.q_ult)
-
-    #print("q_b= " + str(fd.q_b))
-    #print("q1_q0= " + str(fd.q1_q0))
-    # print("q_ult_3= " + str(fd.q_ult))
     assert geofound.isclose(fd.q_ult, 182.97, rel_tol=0.001), fd.q_ult
 
-def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
+
+def test_meyerhof_and_hanna_capacity_sand_over_sand_gwl():
     # STRONG SAND OVER WEAK SAND
     length = 1000000.0  # actually a strip in
     width = 4.0
@@ -370,11 +356,9 @@ def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
     sl_1 = geofound.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     sl_1.unit_sat_weight = 20000
     h0 = 3.0  # m, height of the crust layer
-    # c_a = 0.0
-    # k=1.7
 
     # Case 1: GWL at surface
-    gwl=0.0
+    gwl = 0.0
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
@@ -409,49 +393,72 @@ def test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl():
     gwl = 20.
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
-    # print("q_b= " +str(fd.q_b))
-    # print("q_ult5= " + str(fd.q_ult5))
-    #print("q_ult= ", fd.q_ult/1000)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
     assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof/1000)
 
 
-def test_capacity_sp_meyerhof_and_hanna_1978():
+def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
     length = 1000000.0  # actually a strip in
-    width = 16.0
-    depth = 0.0
+    width = 4.0
+    depth = 1.5
     fd = geofound.create_foundation(length=length, width=width, depth=depth)
 
     phi_0 = 0.0
-    cohesion_0 = 50000
+    cohesion_0 = 40.0
     unit_dry_weight_0 = 18000
     sl_0 = geofound.create_soil(phi=phi_0, cohesion=cohesion_0, unit_dry_weight=unit_dry_weight_0)
     sl_0.unit_sat_weight = 20000
 
-    phi_1 = 25
-    cohesion_1 = 0.0
+    phi_1 = 0.0
+    cohesion_1 = 40.0
     unit_dry_weight_1 = 18000
     sl_1 = geofound.create_soil(phi=phi_1, cohesion=cohesion_1, unit_dry_weight=unit_dry_weight_1)
     sl_1.unit_sat_weight = 20000
-    h0 = 2.0  # m, height of the crust layer
-    # c_a = 0.0
-    # k=1.7
+    h0 = 3.0  # m, height of the crust layer
 
     # Case 1: GWL at surface
-    gwl = 2.0
-    sp = models.SoilProfile()
-    sp.add_layer(0, sl_0)
-    sp.add_layer(h0, sl_1)
+    gwl = 0.0
     q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
-    # q_ult_meyerhof_and_hanna = geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
-    geofound.capacity_sp_meyerhof_and_hanna_1978(sp, fd, gwl=gwl, verbose=0)
-    correction_lower_layer = 1.1
-    expected = q_ult_meyerhof * correction_lower_layer
-    assert geofound.isclose(expected, fd.q_ult, rel_tol=0.01), (expected/1000, fd.q_ult/1000)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    correction = 1.00
+    corrected_2layer = fd.q_ult * correction
+    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+
+    # Case 2: GWL at between foundation depth and surface
+    gwl = 0.5
+    q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    correction = 1.0
+    corrected_2layer = fd.q_ult * correction
+    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+
+    # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
+    gwl = 1.8
+    q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    correction = 1.0
+    corrected_2layer = fd.q_ult * correction
+    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+
+    # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
+    gwl = 4.8
+    q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    correction = 1.0
+    corrected_2layer = fd.q_ult * correction
+    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+
+    # Case 5: GWL beyond foundation depth plus width
+    gwl = 20.
+    q_ult_meyerhof = geofound.capacity_meyerhof_1963(sl_0, fd, gwl=gwl)
+    geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
+    correction = 1.0
+    corrected_2layer = fd.q_ult * correction
+    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof/1000)
 
 
-# def test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand_vs_limitstategeo():
+# def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand_vs_limitstategeo():
 # # STRONG CLAY OVER WEAK SAND
 # length = 1000000.0  # actually a strip in
 #     width = 10.0
@@ -488,7 +495,7 @@ def load_soil_sample_data(sl0):
     :return:
     """
     # soil
-    sl0.height = 1.5  #[m]
+    sl0.height = 1.5  # [m]
     sl0.phi = 34  # [degrees]
     sl0.unit_dry_weight = 17000  # [N/m3]
     sl0.c_a = 0
@@ -508,6 +515,6 @@ def load_soil_sample_data2(sl1):
 
 
 if __name__ == '__main__':
-    test_meyerhoff_using_fabrizio_problem2()
-    # test_meyerhoff_and_hanna_capacity_sand_over_sand_gwl()
-    # test_meyerhoff_and_hanna_capacity_strong_clay_over_weak_sand()
+    test_meyerhof_using_fabrizio_problem2()
+    # test_meyerhof_and_hanna_capacity_sand_over_sand_gwl()
+    # test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand()

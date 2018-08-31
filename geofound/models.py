@@ -1,4 +1,5 @@
 from sfsimodels import models
+from sfsimodels.models import SoilProfile, SoilStructureSystem
 
 
 class Soil(models.Soil):

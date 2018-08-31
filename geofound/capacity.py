@@ -989,6 +989,8 @@ def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=1e6, verbose=0):
         c1_c0 = sl_1.cohesion / sl_0.cohesion
     x = np.array([0.000, 0.082, 0.206, 0.298, 0.404, 0.509, 0.598, 0.685, 0.772])
     y = np.array([0.627, 0.700, 0.794, 0.855, 0.912, 0.948, 0.968, 0.983, 0.997])
+
+    raise Warning("ca should be interpolated using q1/q2 not cohesion, see Figure 4 in MH1978")
     ca_c0 = np.interp(c1_c0, x, y)
     ca = ca_c0 * sl_0.cohesion
 

@@ -1186,17 +1186,7 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
     # Note: this method explicitly accounts for the foundation depth, so there are no depth factors
     # TODO: inclination factors, see doi.org/10.1139/t78-060
 
-    # calculate the ca factor
-    if sl_0.cohesion == 0:
-        c1_c0 = 0
-    else:
-        c1_c0 = sl_1.cohesion / sl_0.cohesion
-    x = np.array([0.000, 0.082, 0.206, 0.298, 0.404, 0.509, 0.598, 0.685, 0.772])
-    y = np.array([0.627, 0.700, 0.794, 0.855, 0.912, 0.948, 0.968, 0.983, 0.997])
 
-    raise Warning("ca should be interpolated using q1/q2 not cohesion, see Figure 4 in MH1978")
-    ca_c0 = np.interp(c1_c0, x, y)
-    ca = ca_c0 * sl_0.cohesion
 
     # Capacity
     a = 1  # assumed to  be one but can range between 1.1 and 1.27 for square footings according to Das (1999) Ch 4
@@ -1263,9 +1253,21 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
     q_b1 = (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
     q_b = q_b1 + q_b2 + q_b3
 
-    # ks
     q1_q0 = q_1 / q_0
 
+    # calculate the ca factor
+    # if sl_0.cohesion == 0:
+    #     c1_c0 = 0
+    # else:
+    #     c1_c0 = sl_1.cohesion / sl_0.cohesion
+    x = np.array([0.000, 0.082, 0.206, 0.298, 0.404, 0.509, 0.598, 0.685, 0.772])
+    y = np.array([0.627, 0.700, 0.794, 0.855, 0.912, 0.948, 0.968, 0.983, 0.997])
+
+    # raise Warning("ca should be interpolated using q1/q2 not cohesion, see Figure 4 in MH1978")
+    ca_c0 = np.interp(q1_q0, x, y)
+    ca = ca_c0 * sl_0.cohesion
+
+    # ks
     x_0 = np.array([0, 20.08, 22.42, 25.08, 27.58, 30.08, 32.58, 34.92, 37.83, 40.00, 42.67, 45.00, 47.00, 49.75])
     y_0 = np.array([0.93, 0.93, 0.93, 0.93, 1.01, 1.17, 1.32, 1.56, 1.87, 2.26, 2.72, 3.35, 3.81, 4.82])
     x_2 = np.array([0, 20.08, 22.50, 25.08, 27.58, 30.08, 32.50, 35.00, 37.67, 40.17, 42.67, 45.00, 47.50, 50.00])

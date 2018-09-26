@@ -1,4 +1,5 @@
 import geofound
+import numpy as np
 from geofound import models
 
 
@@ -15,10 +16,10 @@ def test_vesics():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_vesics_1975(sl, fd, verbose=0)
-    assert geofound.isclose(fd.nc_factor, 46.1, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 33.3, rel_tol=0.001)
-    assert geofound.isclose(fd.ng_factor, 48.0, rel_tol=0.001)
-    assert geofound.isclose(fd.q_ult, 1574.8, rel_tol=0.001)
+    assert np.isclose(fd.nc_factor, 46.1, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 33.3, rtol=0.001)
+    assert np.isclose(fd.ng_factor, 48.0, rtol=0.001)
+    assert np.isclose(fd.q_ult, 1574.8, rtol=0.001)
 
 
 def test_terzaghi():
@@ -35,10 +36,10 @@ def test_terzaghi():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_terzaghi_1943(sl, fd, verbose=0)
-    assert geofound.isclose(fd.nc_factor, 57.8, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 41.4, rel_tol=0.001)
-    assert geofound.isclose(fd.ng_factor, 47.3, rel_tol=0.001)
-    assert geofound.isclose(fd.q_ult, 1347.0, rel_tol=0.001)
+    assert np.isclose(fd.nc_factor, 57.8, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 41.4, rtol=0.001)
+    assert np.isclose(fd.ng_factor, 47.3, rtol=0.001)
+    assert np.isclose(fd.q_ult, 1347.0, rtol=0.001)
     print("DONE")
 
 
@@ -56,10 +57,10 @@ def test_terzaghi_again():
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_terzaghi_1943(sl, fd, verbose=0)
     print(fd.q_ult)
-    assert geofound.isclose(fd.nc_factor, 12.86, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 4.45, rel_tol=0.001)
-    assert geofound.isclose(fd.ng_factor, 2.168, rel_tol=0.001)
-    assert geofound.isclose(fd.q_ult, 515.0, rel_tol=0.001)
+    assert np.isclose(fd.nc_factor, 12.86, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 4.45, rtol=0.001)
+    assert np.isclose(fd.ng_factor, 2.168, rtol=0.001)
+    assert np.isclose(fd.q_ult, 515.0, rtol=0.001)
 
 
 def test_meyerhof():
@@ -73,10 +74,10 @@ def test_meyerhof():
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_meyerhof_1963(sl, fd, gwl=1000, verbose=0)
     print(fd.ng_factor)
-    assert geofound.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 3.94, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 1.13, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 573.3, rel_tol=0.001)
+    assert np.isclose(fd.nc_factor, 10.97, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 3.94, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 1.13, rtol=0.01)
+    assert np.isclose(fd.q_ult, 573.3, rtol=0.001)
 
 
 def test_meyerhof_using_fabrizio_problem1():
@@ -97,7 +98,7 @@ def test_meyerhof_using_fabrizio_problem1():
     sl.unit_sat_weight = unit_sat_weight
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_meyerhof_1963(sl, fd, verbose=0)
-    assert geofound.isclose(fd.q_ult, 526000., rel_tol=0.001), fd.q_ult
+    assert np.isclose(fd.q_ult, 526000., rtol=0.001), fd.q_ult
 
 
 def test_meyerhof_using_fabrizio_problem2():
@@ -122,24 +123,24 @@ def test_meyerhof_using_fabrizio_problem2():
     # problem 2) a)
 
     geofound.capacity_meyerhof_1963(sl, fd, gwl=20.0, verbose=0)
-    # # assert geofound.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 29.4, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 31.1, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 2056, rel_tol=0.01)
+    # # assert np.isclose(fd.nc_factor, 10.97, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 29.4, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 31.1, rtol=0.01)
+    assert np.isclose(fd.q_ult, 2056, rtol=0.01)
 
     # problem 2) b)
     geofound.capacity_meyerhof_1963(sl, fd, gwl=1.5, verbose=0)
-    # assert geofound.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 29.4, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 31.1, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 1521, rel_tol=0.01), fd.q_ult
+    # assert np.isclose(fd.nc_factor, 10.97, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 29.4, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 31.1, rtol=0.01)
+    assert np.isclose(fd.q_ult, 1521, rtol=0.01), fd.q_ult
 
     # problem 2) c)
     geofound.capacity_meyerhof_1963(sl, fd, gwl=0.5, verbose=0)
-    # assert geofound.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 29.4, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 31.1, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 1252, rel_tol=0.03), fd.q_ult
+    # assert np.isclose(fd.nc_factor, 10.97, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 29.4, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 31.1, rtol=0.01)
+    assert np.isclose(fd.q_ult, 1252, rtol=0.03), fd.q_ult
 
 
 def test_hansen():
@@ -152,10 +153,10 @@ def test_hansen():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_hansen_1970(sl, fd, verbose=0)
-    assert geofound.isclose(fd.nc_factor, 10.97, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 3.94, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 1.18, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 648.0, rel_tol=0.001)
+    assert np.isclose(fd.nc_factor, 10.97, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 3.94, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 1.18, rtol=0.01)
+    assert np.isclose(fd.q_ult, 648.0, rtol=0.001)
 
 
 def test_nzs_vm4():
@@ -177,10 +178,10 @@ def test_nzs_vm4():
     loc_v_b = 0.848
     geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
                                    verbose=0)
-    assert geofound.isclose(fd.nc_factor, 5.14, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 1.0, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 0.0, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 368.12, rel_tol=0.001)
+    assert np.isclose(fd.nc_factor, 5.14, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 1.0, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 0.0, rtol=0.01)
+    assert np.isclose(fd.q_ult, 368.12, rtol=0.001)
 
 
 def test_nzs_vm4_load_case_3():
@@ -202,10 +203,10 @@ def test_nzs_vm4_load_case_3():
     loc_v_b = 0.854
     geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
                                    verbose=0)
-    assert geofound.isclose(fd.nc_factor, 5.14, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 1.0, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 0.0, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 301.68, rel_tol=0.001)
+    assert np.isclose(fd.nc_factor, 5.14, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 1.0, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 0.0, rtol=0.01)
+    assert np.isclose(fd.q_ult, 301.68, rtol=0.001)
 
 
 def test_nzs_vm4_load_case_5():
@@ -230,10 +231,10 @@ def test_nzs_vm4_load_case_5():
     geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
                                    verbose=0)
 
-    assert geofound.isclose(fd.nc_factor, 20.72, rel_tol=0.001)
-    assert geofound.isclose(fd.nq_factor, 10.66, rel_tol=0.01)
-    assert geofound.isclose(fd.ng_factor, 9.01, rel_tol=0.01)
-    assert geofound.isclose(fd.q_ult, 145.02, rel_tol=0.001)  # 152.70?
+    assert np.isclose(fd.nc_factor, 20.72, rtol=0.001)
+    assert np.isclose(fd.nq_factor, 10.66, rtol=0.01)
+    assert np.isclose(fd.ng_factor, 9.01, rtol=0.01)
+    assert np.isclose(fd.q_ult, 145.02, rtol=0.001)  # 152.70?
 
 
 def test_from_encn452_2013():
@@ -250,14 +251,14 @@ def test_from_encn452_2013():
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_terzaghi_1943(sl, fd, verbose=0)
     geofound.capacity_vesics_1975(sl, fd, verbose=0)
-    assert geofound.isclose(fd.q_ult, 298.0, rel_tol=0.001)
+    assert np.isclose(fd.q_ult, 298.0, rtol=0.001)
 
 
 def test_size_foundations():
     phi = 32
     cohesion = 0
     unit_dry_weight = 20
-    fos_values = [3, 5, 10, 20]
+    fos_values = [3.0, 5.0, 10.0, 20.0]
     vertical_loads = [500., 800., 1000.]
     methods = geofound.available_methods
     for fos in fos_values:
@@ -268,7 +269,7 @@ def test_size_foundations():
                                                         length_to_width=2)
                 f_capacity = fd.length * fd.width * fd.q_ult
                 actual_fos = f_capacity / vertical_load
-                assert geofound.isclose(actual_fos, fos, rel_tol=0.1), (fos, vertical_load, method)
+                assert np.isclose(actual_fos, fos, rtol=0.11), (fos, vertical_load, method)
 
 
 def test_meyerhof_and_hanna_capacity_strong_sand_over_weak_clay():
@@ -291,7 +292,7 @@ def test_meyerhof_and_hanna_capacity_strong_sand_over_weak_clay():
 
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
 
-    assert geofound.isclose(fd.q_ult, 264.74, rel_tol=0.001), fd.q_ult
+    assert np.isclose(fd.q_ult, 264.74, rtol=0.001), fd.q_ult
 
 
 def test_meyerhof_and_hanna_capacity_strong_sand_over_weak_sand():
@@ -313,7 +314,7 @@ def test_meyerhof_and_hanna_capacity_strong_sand_over_weak_sand():
     h0 = 1.5  # m, height of the crust layer
 
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
-    assert geofound.isclose(fd.q_ult, 158.32, rel_tol=0.001), fd.q_ult
+    assert np.isclose(fd.q_ult, 158.32, rtol=0.001), fd.q_ult
 
 
 def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand():
@@ -335,7 +336,7 @@ def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand():
     h0 = 1  # m, height of the crust layer
 
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0)
-    assert geofound.isclose(fd.q_ult, 182.97, rel_tol=0.001), fd.q_ult
+    assert np.isclose(fd.q_ult, 187.87, rtol=0.001), fd.q_ult  # no independent validation
 
 
 def test_meyerhof_and_hanna_capacity_sand_over_sand_gwl():
@@ -364,7 +365,7 @@ def test_meyerhof_and_hanna_capacity_sand_over_sand_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 2: GWL at between foundation depth and surface
     gwl = 0.5
@@ -372,7 +373,7 @@ def test_meyerhof_and_hanna_capacity_sand_over_sand_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
     gwl = 1.8
@@ -380,7 +381,7 @@ def test_meyerhof_and_hanna_capacity_sand_over_sand_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
     gwl = 4.8
@@ -388,7 +389,7 @@ def test_meyerhof_and_hanna_capacity_sand_over_sand_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.03
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 5: GWL beyond foundation depth plus width
     gwl = 20.
@@ -396,7 +397,7 @@ def test_meyerhof_and_hanna_capacity_sand_over_sand_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.07
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof/1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof/1000)
 
 
 def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
@@ -424,7 +425,7 @@ def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.00
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 2: GWL at between foundation depth and surface
     gwl = 0.5
@@ -432,7 +433,7 @@ def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.0
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
     gwl = 1.8
@@ -440,7 +441,7 @@ def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.0
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
     gwl = 4.8
@@ -448,7 +449,7 @@ def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.0
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof / 1000)
 
     # Case 5: GWL beyond foundation depth plus width
     gwl = 20.
@@ -456,7 +457,7 @@ def test_meyerhof_and_hanna_capacity_clay_over_clay_gwl():
     geofound.capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=gwl, verbose=0)
     correction = 1.0
     corrected_2layer = fd.q_ult * correction
-    assert geofound.isclose(corrected_2layer, q_ult_meyerhof, rel_tol=0.01), (corrected_2layer, q_ult_meyerhof/1000)
+    assert np.isclose(corrected_2layer, q_ult_meyerhof, rtol=0.01), (corrected_2layer, q_ult_meyerhof/1000)
 
 
 def test_capacity_sp_meyerhof_and_hanna_1978():
@@ -491,7 +492,7 @@ def test_capacity_sp_meyerhof_and_hanna_1978():
     geofound.capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0)
     correction_lower_layer = 1.1  # unconfirmed value, test added for v0.4.6
     expected = q_ult_meyerhof * correction_lower_layer
-    assert geofound.isclose(expected, fd.q_ult, rel_tol=0.01), (expected / 1000, fd.q_ult / 1000)
+    assert np.isclose(expected, fd.q_ult, rtol=0.01), (expected / 1000, fd.q_ult / 1000)
 
 
 # def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand_vs_limitstategeo():
@@ -522,7 +523,7 @@ def test_capacity_sp_meyerhof_and_hanna_1978():
 #     print("q_b_limitstategeo= " + str(fd.q_b))
 #     print("q_t_limitstategeo= " + str(fd.q_t))
 #     print("q_ult_limitstategeo= " + str(fd.q_ult))
-#     assert geofound.isclose(fd.q_ult, 26.45, rel_tol=0.001), fd.q_ult
+#     assert np.isclose(fd.q_ult, 26.45, rtol=0.001), fd.q_ult
 
 def load_soil_sample_data(sl0):
     """

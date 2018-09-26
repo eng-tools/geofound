@@ -1125,6 +1125,7 @@ def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=1e6, verbose=0):
     #
     # return fd.q_ult
 
+
 def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
     """
     Calculates the two-layered foundation capacity according Meyerhof and Hanna (1978)
@@ -1185,8 +1186,6 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
 
     # Note: this method explicitly accounts for the foundation depth, so there are no depth factors
     # TODO: inclination factors, see doi.org/10.1139/t78-060
-
-
 
     # Capacity
     a = 1  # assumed to  be one but can range between 1.1 and 1.27 for square footings according to Das (1999) Ch 4
@@ -1319,7 +1318,6 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
 
     q_t1 = (sl_0.cohesion * sl_0.nc_factor_0 * sl_0.s_c_0)
     q_t = q_t1 + q_t2 + q_t3
-
 
     if q_ult > q_t:
         if h0 > fd.width/2:

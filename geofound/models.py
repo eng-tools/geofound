@@ -6,7 +6,7 @@ class Soil(models.Soil):
     gwl = 100000.0  # ground water level
 
 
-class RaftFoundation(models.RaftFoundation):
+class FoundationRaft(models.FoundationRaft):
     q_ult = 0.0
     nc_factor = 0.0
     ng_factor = 0.0
@@ -16,7 +16,7 @@ class RaftFoundation(models.RaftFoundation):
         return self.length, self.width, self.height
 
 
-class Foundation(RaftFoundation):
+class Foundation(FoundationRaft):
 
     def __repr__(self):
         return self.length, self.width, self.height
@@ -41,7 +41,7 @@ def create_foundation(length, width, depth=0.0, height=0.0):
     :param height: Foundation height
     :return: A Foundation object
     """
-    a_foundation = RaftFoundation()
+    a_foundation = FoundationRaft()
     a_foundation.length = length
     a_foundation.width = width
     a_foundation.depth = depth

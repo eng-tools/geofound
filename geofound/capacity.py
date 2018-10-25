@@ -652,7 +652,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
         use_depth_to_width = 1
 
     # Find approximate size
-    fd = models.Foundation()
+    fd = models.FoundationRaft()
     fd.width = .5  # start with B=1.0m
     for i in range(50):
         fd.length = length_to_width * fd.width

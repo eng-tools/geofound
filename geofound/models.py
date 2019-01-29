@@ -1,6 +1,8 @@
 from sfsimodels import models
 from sfsimodels.models import SoilProfile, SoilStructureSystem
 
+from geofound.exceptions import DesignError
+
 
 class Soil(models.Soil):
     gwl = 100000.0  # ground water level
@@ -63,3 +65,16 @@ def create_soil(phi=0.0, cohesion=0.0, unit_dry_weight=0.0, pw=9800):
     soil.cohesion = cohesion
     soil.unit_dry_weight = unit_dry_weight
     return soil
+
+
+def check_required(obj, required_parameters):
+    """
+    Check if a parameter is available on an object
+
+    :param obj: Object
+    :param required_parameters: list of parameters
+    :return:
+    """
+    for parameter in required_parameters:
+        if not hasattr(obj, parameter) or getattr(obj, parameter) is None:
+            raise DesignError("parameter '%s' must be set for '%s' object." % (parameter, obj.base_type))

@@ -6,20 +6,6 @@ from geofound import models
 import sfsimodels as sm
 
 
-def check_required(obj, required_parameters, obj_name):
-    """
-    Check if a parameter is available on an object
-
-    :param obj: Object
-    :param required_parameters: list of parameters
-    :param obj_name: name of parameter for raising an error
-    :return:
-    """
-    for parameter in required_parameters:
-        if not hasattr(obj, parameter) or getattr(obj, parameter) is None:
-            raise DesignError("parameter '%s' must be set for '%s' object." % (parameter, obj_name))
-
-
 def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs):
     """
     Calculates the foundation capacity according Vesics(1975)
@@ -39,8 +25,8 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     """
 
     if not kwargs.get("disable_requires", False):
-        check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"], "soil")
-        check_required(fd, ["length", "width", "depth"], "foundation")
+        models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
+        models.check_required(fd, ["length", "width", "depth"])
 
     area_foundation = fd.length * fd.width
     c_a = 0.6 - 1.0 * sl.cohesion
@@ -168,8 +154,8 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
     Note: the shape factor of 1.3 is used for aspect ratio > 6
     """
     if not kwargs.get("disable_requires", False):
-        check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"], "soil")
-        check_required(fd, ["length", "width", "depth"], "foundation")
+        models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
+        models.check_required(fd, ["length", "width", "depth"])
 
     a02 = ((np.exp(np.pi * (0.75 - sl.phi / 360) * np.tan(sl.phi_r))) ** 2)
     a0_check = (np.exp((270 - sl.phi) / 180 * np.pi * np.tan(sl.phi_r)))
@@ -230,8 +216,8 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     :return: ultimate bearing stress
     """
     if not kwargs.get("disable_requires", False):
-        check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"], "soil")
-        check_required(fd, ["length", "width", "depth"], "foundation")
+        models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
+        models.check_required(fd, ["length", "width", "depth"])
 
     area_foundation = fd.length * fd.width
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
@@ -341,8 +327,8 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
     :return: ultimate bearing stress
     """
     if not kwargs.get("disable_requires", False):
-        check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"], "soil")
-        check_required(fd, ["length", "width", "depth"], "foundation")
+        models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
+        models.check_required(fd, ["length", "width", "depth"])
 
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
@@ -446,8 +432,8 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
     # clay has liquidity indices greater than 0.7
 
     if not kwargs.get("disable_requires", False):
-        check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"], "soil")
-        check_required(fd, ["length", "width", "depth"], "foundation")
+        models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
+        models.check_required(fd, ["length", "width", "depth"])
 
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
@@ -569,8 +555,8 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     # Need to make adjustments if sand  has DR<40% or
     # clay has liquidity indices greater than 0.7
     if not kwargs.get("disable_requires", False):
-        check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"], "soil")
-        check_required(fd, ["length", "width", "depth"], "foundation")
+        models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
+        models.check_required(fd, ["length", "width", "depth"])
 
     h_eff_b = kwargs.get("h_eff_b", 0)
     h_eff_l = kwargs.get("h_eff_l", 0)

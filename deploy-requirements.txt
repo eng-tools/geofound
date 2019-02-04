@@ -1,4 +1,5 @@
 coverage
 codecov
 pylint
+openssl
 twine

@@ -4,9 +4,13 @@ about = {}
 with open("geofound/__about__.py") as fp:
     exec(fp.read(), about)
 
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
+
 setup(name='geofound',
       version=about['__version__'],
       description='A package to assess the bearing capacity and settlement of geofound',
+      long_description=readme + '\n\n',
       url='https://github.com/eng-tools/geofound',
       author='Maxim Millen',
       author_email='mmi46@uclive.ac.nz',

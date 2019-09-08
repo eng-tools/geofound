@@ -17,7 +17,7 @@ setup(name='geofound',
       keywords='geotechnical engineering foundations settlement',
       license='MIT',
       classifiers=[
-          'Development Status :: 3 - Alpha',
+          'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Science/Research',
           'Topic :: Scientific/Engineering',
           'License :: OSI Approved :: MIT License',

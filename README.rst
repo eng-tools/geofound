@@ -16,6 +16,10 @@
 .. image:: https://circleci.com/gh/eng-tools/geofound.png?circle-token=:90783a81351a57f5e27913f13aba519f4d1d5457
     :alt: Build Status
 
+.. image:: https://zenodo.org/badge/125842866.svg
+   :target: https://zenodo.org/badge/latestdoi/125842866
+   :alt: DOI
+
 ********
 geofound
 ********

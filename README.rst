@@ -13,12 +13,13 @@
     :target: https://github.com/eng-tools/geofound/blob/master/LICENSE
     :alt: License
 
-.. image:: https://circleci.com/gh/eng-tools/geofound.png?circle-token=:90783a81351a57f5e27913f13aba519f4d1d5457
+.. image:: https://circleci.com/gh/eng-tools/geofound.svg?style=svg
+    :target: https://circleci.com/gh/eng-tools/geofound
     :alt: Build Status
 
 .. image:: https://zenodo.org/badge/112601559.svg
-   :target: https://zenodo.org/badge/latestdoi/112601559
-   :alt: DOI
+    :target: https://zenodo.org/badge/latestdoi/112601559
+    :alt: DOI
 
 ********
 geofound

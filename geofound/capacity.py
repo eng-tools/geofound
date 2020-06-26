@@ -27,8 +27,13 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
-
-    area_foundation = fd.length * fd.width
+    if fd.length > fd.width:  # TODO: deal with plane strain
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
+    area_foundation = fd_length * fd_width
     c_a = 0.6 - 1.0 * sl.cohesion
 
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
@@ -41,21 +46,21 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     fd.ng_factor = 2.0 * (fd.nq_factor + 1) * np.tan(sl.phi_r)
 
     # shape factors:
-    s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd.width / fd.length
-    s_q = 1 + fd.width / fd.length * np.tan(sl.phi_r)
-    s_g = max(1.0 - 0.4 * fd.width / fd.length, 0.6)  # add limit of 0.6 based on Vesic
+    s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
+    s_q = 1 + fd_width / fd_length * np.tan(sl.phi_r)
+    s_g = max(1.0 - 0.4 * fd_width / fd_length, 0.6)  # add limit of 0.6 based on Vesic
     # depth factors:
-    if fd.depth / fd.width > 1:
-        k = np.arctan(fd.depth / fd.width)
+    if fd.depth / fd_width > 1:
+        k = np.arctan(fd.depth / fd_width)
     else:
-        k = fd.depth / fd.width
+        k = fd.depth / fd_width
     d_c = 1 + 0.4 * k
     d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * k
     d_g = 1.0
 
     # load inclination factors
-    m__b = (2.0 + fd.width / fd.length) / (1 + fd.width / fd.length)
-    m_l = (2.0 + fd.length / fd.width) / (1 + fd.length / fd.width)
+    m__b = (2.0 + fd_width / fd_length) / (1 + fd_width / fd_length)
+    m_l = (2.0 + fd_length / fd_width) / (1 + fd_length / fd_width)
     m = np.sqrt(m__b ** 2 + m_l ** 2)
 
     if sl.phi_r == 0:
@@ -98,13 +103,13 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
         q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
         unit_weight = sl.unit_bouy_weight
 
-    elif gwl >= fd.depth and gwl <= fd.depth + fd.width:
+    elif gwl >= fd.depth and gwl <= fd.depth + fd_width:
         sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
-            ((gwl - fd.depth) / fd.width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+            ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.average_unit_bouy_weight
 
-    elif gwl > fd.depth + fd.width:
+    elif gwl > fd.depth + fd_width:
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.unit_dry_weight
 
@@ -132,7 +137,7 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c * g_c * b_c +
                 q_d * fd.nq_factor * s_q * d_q * i_q * g_q * b_q +
-                0.5 * fd.width * unit_weight *
+                0.5 * fd_width * unit_weight *
                 fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
     if verbose:
@@ -156,6 +161,12 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
+    if fd.length > fd.width:  # TODO: deal with plane strain
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
 
     a02 = ((np.exp(np.pi * (0.75 - sl.phi / 360) * np.tan(sl.phi_r))) ** 2)
     a0_check = (np.exp((270 - sl.phi) / 180 * np.pi * np.tan(sl.phi_r)))
@@ -173,7 +184,7 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
     if round_footing:
         s_c = 1.3
         s_g = 0.6
-    elif fd.length / fd.width < 5:
+    elif fd_length / fd_width < 5:
         s_c = 1.3
         s_g = 0.8
     else:
@@ -185,7 +196,7 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
     q_d = sl.unit_dry_weight * fd.depth
 
     # Capacity
-    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c + q_d * fd.nq_factor * s_q + 0.5 * fd.width *
+    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c + q_d * fd.nq_factor * s_q + 0.5 * fd_width *
                 sl.unit_dry_weight * fd.ng_factor * s_g)
 
     if verbose:
@@ -219,7 +230,13 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
 
-    area_foundation = fd.length * fd.width
+    if fd.length > fd.width:  # TODO: deal with plane strain
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
+    area_foundation = fd_length * fd_width
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
     c_a = 0.6 - 1.0 * sl.cohesion
 
@@ -232,18 +249,18 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
 
     # shape factors
     if sl.phi_r == 0:
-        s_c = 0.2 * fd.width / fd.length
+        s_c = 0.2 * fd_width / fd_length
     else:
-        s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd.width / fd.length
+        s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
 
-    s_q = 1.0 + fd.width / fd.length * np.sin(sl.phi_r)
-    s_g = 1.0 - 0.4 * fd.width / fd.length
+    s_q = 1.0 + fd_width / fd_length * np.sin(sl.phi_r)
+    s_g = 1.0 - 0.4 * fd_width / fd_length
 
     # depth factors:
-    if fd.depth / fd.width > 1:
-        k = np.arctan(fd.depth / fd.width)
+    if fd.depth / fd_width > 1:
+        k = np.arctan(fd.depth / fd_width)
     else:
-        k = fd.depth / fd.width
+        k = fd.depth / fd_width
     d_c = 1 + 0.4 * k
     if sl.phi == 0:
         d_c = 0.4 * k
@@ -309,7 +326,7 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
         fd.q_ult = (sl.cohesion * fd.nc_factor *
                     s_c * d_c * i_c * g_c * b_c +
                     q_d * fd.nq_factor * s_q * d_q * i_q * g_q * b_q +
-                    0.5 * fd.width * sl.unit_dry_weight *
+                    0.5 * fd_width * sl.unit_dry_weight *
                     fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
 
@@ -329,6 +346,12 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
+    if fd.length > fd.width:  # TODO: deal with plane strain
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
 
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
@@ -347,17 +370,17 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
 
     kp = (np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2
     # shape factors
-    s_c = 1 + 0.2 * kp * fd.width / fd.length
+    s_c = 1 + 0.2 * kp * fd_width / fd_length
     if sl.phi > 10:
-        s_q = 1.0 + 0.1 * kp * fd.width / fd.length
+        s_q = 1.0 + 0.1 * kp * fd_width / fd_length
     else:
         s_q = 1.0
     s_g = s_q
 
     # depth factors
-    d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / fd.width
+    d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / fd_width
     if sl.phi > 10:
-        d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / fd.width
+        d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / fd_width
     else:
         d_q = 1.0
     d_g = d_q
@@ -381,13 +404,13 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
         q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
         unit_weight = sl.unit_bouy_weight
 
-    elif gwl >= fd.depth and gwl <= fd.depth + fd.width:
+    elif gwl >= fd.depth and gwl <= fd.depth + fd_width:
         sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
-        ((gwl - fd.depth) / fd.width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+        ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.average_unit_bouy_weight
 
-    elif gwl > fd.depth + fd.width:
+    elif gwl > fd.depth + fd_width:
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.unit_dry_weight
 
@@ -409,7 +432,7 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c +
                 q_d * fd.nq_factor * s_q * d_q * i_q +
-                0.5 * fd.width * unit_weight *
+                0.5 * fd_width * unit_weight *
                 fd.ng_factor * s_g * d_g * i_g)
     return fd.q_ult
 
@@ -434,25 +457,30 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
-
+    if fd.length > fd.width:  # TODO: deal with plane strain
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
     h_eff_b = kwargs.get("h_eff_b", 0)
     h_eff_l = kwargs.get("h_eff_l", 0)
-    loc_v_l = kwargs.get("loc_v_l", fd.length / 2)
-    loc_v_b = kwargs.get("loc_v_b", fd.width / 2)
+    loc_v_l = kwargs.get("loc_v_l", fd_length / 2)
+    loc_v_b = kwargs.get("loc_v_b", fd_width / 2)
 
     ecc_b = h_b * h_eff_b / vertical_load
     ecc_l = h_l * h_eff_l / vertical_load
 
-    width_eff = min(fd.width, 2 *
-                    (loc_v_b + ecc_b), 2 * (fd.width - loc_v_b - ecc_b))
-    length_eff = min(fd.length, 2 *
-                     (loc_v_l + ecc_l), 2 * (fd.length - loc_v_l - ecc_l))
+    width_eff = min(fd_width, 2 *
+                    (loc_v_b + ecc_b), 2 * (fd_width - loc_v_b - ecc_b))
+    length_eff = min(fd_length, 2 *
+                     (loc_v_l + ecc_l), 2 * (fd_length - loc_v_l - ecc_l))
     area_foundation = length_eff * width_eff
 
     # check para 3.4.1
-    if width_eff / 2 < fd.width / 6:
+    if width_eff / 2 < fd_width / 6:
         raise DesignError("failed on eccentricity")
 
     # LOAD FACTORS:
@@ -557,20 +585,26 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
+    if fd.length > fd.width:  # TODO: deal with plane strain
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
 
     h_eff_b = kwargs.get("h_eff_b", 0)
     h_eff_l = kwargs.get("h_eff_l", 0)
-    loc_v_l = kwargs.get("loc_v_l", fd.length / 2)
-    loc_v_b = kwargs.get("loc_v_b", fd.width / 2)
+    loc_v_l = kwargs.get("loc_v_l", fd_length / 2)
+    loc_v_b = kwargs.get("loc_v_b", fd_width / 2)
 
     ecc_b = h_b * h_eff_b / vertical_load
     ecc_l = h_l * h_eff_l / vertical_load
 
-    width_eff = min(fd.width, 2 * (loc_v_b + ecc_b), 2 * (fd.width - loc_v_b - ecc_b))
-    length_eff = min(fd.length, 2 * (loc_v_l + ecc_l), 2 * (fd.length - loc_v_l - ecc_l))
+    width_eff = min(fd_width, 2 * (loc_v_b + ecc_b), 2 * (fd_width - loc_v_b - ecc_b))
+    length_eff = min(fd_length, 2 * (loc_v_l + ecc_l), 2 * (fd_length - loc_v_l - ecc_l))
 
     # check para 3.4.1
-    if width_eff / 2 < fd.width / 6:
+    if width_eff / 2 < fd_width / 6:
         DesignError("failed on eccentricity")
 
     # LOAD FACTORS:
@@ -623,6 +657,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
 def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **kwargs):
     """
     Determine the size of a footing given an aspect ratio and a load
+
     :param sl: Soil object
     :param vertical_load: The applied load to the foundation
     :param fos: The target factor of safety
@@ -696,6 +731,50 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     return fd
 
 
+def calc_crit_length(sl, fd, vertical_load, verbose=0, **kwargs):
+    """
+    Determine the size of a footing given an aspect ratio and a load
+
+    :param sl: Soil object
+    :param vertical_load: The applied load to the foundation
+    :param fos: The target factor of safety
+    :param length_to_width: The desired length to width ratio of the foundation
+    :param verbose: verbosity
+    :return: a Foundation object
+    """
+    method = kwargs.get("method", 'vesics')
+
+
+    # Find approximate size
+    new_fd = models.FoundationRaft()
+    new_fd.width = fd.width
+    new_fd.depth = fd.depth
+    new_fd.length = fd.length
+    prev_ub_len = fd.length
+    q_ult = capacity_method_selector(sl, new_fd, method)
+    init_fos = (q_ult * fd.area) / vertical_load
+    if init_fos < 1.0:
+        raise ValueError
+    prev_lb_len = 0  # should be FOS lower than 1.
+    est_len = fd.length / init_fos
+    prev_q = q_ult
+    for i in range(50):
+        new_fd.length = est_len
+        q = capacity_method_selector(sl, new_fd, method)
+        curr_fos = (q * new_fd.area) / vertical_load
+        if np.isclose(curr_fos, 1.0, rtol=0.01):
+            break
+        elif curr_fos < 1:
+            prev_lb_len = est_len
+            est_len = (prev_ub_len + est_len) / 2
+        else:
+            prev_ub_len = est_len
+            est_len = (prev_lb_len + est_len) / 2
+    if i == 49:
+        raise ValueError(init_fos, est_len, prev_lb_len, prev_ub_len)
+    return est_len
+
+
 def capacity_method_selector(sl, fd, method, **kwargs):
     """
     Calculates the bearing capacity of a foundation on soil using the specified method.
@@ -707,17 +786,17 @@ def capacity_method_selector(sl, fd, method, **kwargs):
     """
 
     if method == 'vesics':
-        capacity_vesics_1975(sl, fd, **kwargs)
+        return capacity_vesics_1975(sl, fd, **kwargs)
     elif method == 'nzs':
-        capacity_nzs_vm4_2011(sl, fd, **kwargs)
+        return capacity_nzs_vm4_2011(sl, fd, **kwargs)
     elif method == 'terzaghi':
-        capacity_terzaghi_1943(sl, fd, **kwargs)
+        return capacity_terzaghi_1943(sl, fd, **kwargs)
     elif method == 'hansen':
-        capacity_hansen_1970(sl, fd, **kwargs)
+        return capacity_hansen_1970(sl, fd, **kwargs)
     elif method == 'meyerhoff':
-        capacity_meyerhof_1963(sl, fd, **kwargs)
+        return capacity_meyerhof_1963(sl, fd, **kwargs)
     elif method == 'salgado':
-        capacity_salgado_2008(sl, fd, **kwargs)
+        return capacity_salgado_2008(sl, fd, **kwargs)
 
 
 available_methods = {
@@ -744,174 +823,6 @@ def capacity_from_spt():
     # phi = 25 + 28 * (N_55 / q)**0.5
 
 
-def deprecated_capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, verbose=0):
-    """
-    Calculates the two-layered foundation capacity according Meyerhof and Hanna (1978)
-
-    :param sl_0: Top Soil object
-    :param sl_1: Base Soil object
-    :param h0: Height of top soil layer
-    :param fd: Foundation object
-    :param h_l: Horizontal load parallel to length
-    :param h_b: Horizontal load parallel to width
-    :param vertical_load: Vertical load
-    :param verbose: verbosity
-    :return: ultimate bearing stress
-    """
-
-    # UNFINISHED, this code is copied from the Meyerhoff method
-    # horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
-
-    sl_0.nq_factor_0 = (
-        (np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_0.phi))))
-    if sl_0.phi == 0:
-        sl_0.nc_factor_0 = 5.14
-    else:
-        sl_0.nc_factor_0 = (sl_0.nq_factor_0 - 1) / np.tan(np.deg2rad(sl_0.phi))
-    sl_0.ng_factor_0 = (sl_0.nq_factor_0 - 1) * np.tan(1.4 * np.deg2rad(sl_0.phi))
-
-    sl_1.nq_factor_1 = (
-        (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_1.phi))))
-    if sl_1.phi == 0:
-        sl_1.nc_factor_1 = 5.14
-    else:
-        sl_1.nc_factor_1 = (sl_1.nq_factor_1 - 1) / np.tan(np.deg2rad(sl_1.phi))
-    sl_1.ng_factor_1 = (sl_1.nq_factor_1 - 1) * np.tan(1.4 * np.deg2rad(sl_1.phi))
-
-    if verbose:
-        log("Nc: ", sl_1.nc_factor_1)
-        log("Nq: ", sl_1.nq_factor_1)
-        log("Ng: ", sl_1.ng_factor_1)
-
-    sl_0.kp_0 = (np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2
-    sl_1.kp_1 = (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2
-    # shape factors
-
-    # s_c = 1 + 0.2 * kp * fd.width / fd.length
-    if sl_0.phi >= 10:
-        sl_0.s_c_0 = 1 + 0.2 * sl_0.kp_0 * (fd.width / fd.length)
-        sl_0.s_q_0 = 1.0 + 0.1 * sl_0.kp_0 * (fd.width / fd.length)
-    else:
-        sl_0.s_c_0 = 1 + 0.2 * (fd.width / fd.length)
-        sl_0.s_q_0 = 1.0
-    sl_0.s_g_0 = sl_0.s_q_0
-
-    if sl_1.phi >= 10:
-        sl_1.s_c_1 = 1 + 0.2 * sl_1.kp_1 * (fd.width / fd.length)
-        sl_1.s_q_1 = 1.0 + 0.1 * sl_1.kp_1 * (fd.width / fd.length)
-    else:
-        sl_1.s_c_1 = 1 + 0.2 * (fd.width / fd.length)
-        sl_1.s_q_1 = 1.0
-    sl_1.s_g_1 = sl_1.s_q_1
-
-    """
-    # depth factors
-    d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / fd.width
-    if sl_0.phi > 10:
-        d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / fd.width
-    else:
-        d_q = 1.0
-    d_g = d_q
-
-    # inclination factors:
-    theta_load = np.arctan(horizontal_load / vertical_load)
-    i_c = (1 - theta_load / (np.pi * 0.5)) ** 2
-    i_q = i_c
-    if sl_0.phi > 0:
-        i_g = (1 - theta_load / sl_0.phi_r) ** 2
-    else:
-        i_g = 0
-    """
-
-    # stress at footing base:
-    # q_d = sl_0.unit_dry_weight_0 * fd.depth
-
-    # ks
-    sl_0.q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0)
-    sl_1.q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1)
-    q1_q0 = sl_1.q_1 / sl_0.q_0
-
-    x_0 = np.array([0, 20.08, 22.42, 25.08, 27.58, 30.08, 32.58, 34.92, 37.83, 40.00, 42.67, 45.00, 47.00, 49.75])
-    y_0 = np.array([0.93, 0.93, 0.93, 0.93, 1.01, 1.17, 1.32, 1.56, 1.87, 2.26, 2.72, 3.35, 3.81, 4.82])
-    x_2 = np.array([0, 20.08, 22.50, 25.08, 27.58, 30.08, 32.50, 35.00, 37.67, 40.17, 42.67, 45.00, 47.50, 50.00])
-    y_2 = np.array([1.55, 1.55, 1.71, 1.86, 2.10, 2.33, 2.72, 3.11, 3.81, 4.43, 5.28, 6.14, 7.46, 9.24])
-    x_4 = np.array([0, 20.00, 22.51, 25.10, 27.69, 30.11, 32.45, 35.04, 37.88, 40.14, 42.65, 45.07, 47.33, 50.08])
-    y_4 = np.array([2.49, 2.49, 2.64, 2.87, 3.34, 3.81, 4.43, 5.20, 6.29, 7.38, 9.01, 11.11, 14.29, 19.34])
-    x_10 = np.array([0, 20.00, 22.50, 25.08, 28.00, 30.00, 32.50, 34.92, 37.50, 40.17, 42.42, 45.00, 47.17, 50.08])
-    y_10 = np.array([3.27, 3.27, 3.74, 4.44, 5.37, 6.07, 7.16, 8.33, 10.04, 12.30, 15.95, 21.17, 27.47, 40.00])
-    x_int = sl_0.phi
-
-    if sl_0.phi < 1:
-        fd.ks = 0
-    else:
-
-        if q1_q0 == 0:
-            fd.ks = np.interp(x_int, x_0, y_0)
-
-        elif q1_q0 == 0.2:
-            fd.ks = np.interp(x_int, x_2, y_2)
-
-        elif q1_q0 == 0.4:
-            fd.ks = np.interp(x_int, x_4, y_4)
-
-        elif q1_q0 == 1.0:
-            fd.ks = np.interp(x_int, x_10, y_10)
-
-        elif 0 < q1_q0 < 0.2:
-            ks_1 = np.interp(x_int, x_0, y_0)
-            ks_2 = np.interp(x_int, x_2, y_2)
-            fd.ks = (((ks_2 - ks_1) * q1_q0) / 0.2) + ks_1
-
-        elif 0.2 < q1_q0 < 0.4:
-            ks_1 = np.interp(x_int, x_2, y_2)
-            ks_2 = np.interp(x_int, x_4, y_4)
-            fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.2)) / 0.2) + ks_1
-
-        elif 0.4 < q1_q0 < 1.0:
-            ks_1 = np.interp(x_int, x_4, y_4)
-            ks_2 = np.interp(x_int, x_10, y_10)
-            fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.4)) / 0.6) + ks_1
-        else:
-            raise DesignError("Cannot compute 'ks', bearing ratio out-of-range (q1_q0 = %.3f) required: 0-1." % q1_q0)
-
-    # ca
-    if sl_0.cohesion == 0:
-        c1_c0 = 0
-    else:
-        c1_c0 = sl_1.cohesion / sl_0.cohesion
-    x = np.array([0.000, 0.082, 0.206, 0.298, 0.404, 0.509, 0.598, 0.685, 0.772])
-    y = np.array([0.627, 0.700, 0.794, 0.855, 0.912, 0.948, 0.968, 0.983, 0.997])
-    ca_c0 = np.interp(c1_c0, x, y)
-
-    fd.ca = ca_c0 * sl_0.cohesion
-
-    # Capacity
-    a = 1  # ????
-    s = 1  # ????
-
-    r = 1 + (fd.width / fd.length)
-    q_b1 = (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
-    q_b2 = (sl_0.unit_dry_weight * h0 * sl_1.nq_factor_1 * sl_1.s_q_1)
-    q_b3 = (sl_1.unit_dry_weight * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
-    fd.q_b = q_b1 + q_b2 + q_b3
-    fd.q_ult4 = (r * (2 * fd.ca * (h0 - fd.depth) / fd.width) * a)
-    fd.q_ult5 = r * (sl_0.unit_dry_weight * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-        fd.ks * np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
-    fd.q_ult6 = (sl_0.unit_dry_weight * (h0 - fd.depth))
-    fd.q_ult = fd.q_b + fd.q_ult4 + fd.q_ult5 - fd.q_ult6
-
-    # maximum value (qu <= qt)
-    q_t1 = (sl_0.cohesion * sl_0.nc_factor_0 * sl_0.s_c_0)
-    q_t2 = (sl_0.unit_dry_weight * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-    q_t3 = (sl_0.unit_dry_weight * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
-    fd.q_t = q_t1 + q_t2 + q_t3
-
-    if fd.q_ult > fd.q_t:
-        fd.q_ult = fd.q_t
-
-    return fd.q_ult
-
-
 def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=1e6, verbose=0):
     """
     Calculates the two-layered foundation capacity according Meyerhof and Hanna (1978)
@@ -930,187 +841,6 @@ def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=1e6, verbose=0):
     sp.gwl = gwl
     return capacity_sp_meyerhof_and_hanna_1978(sp, fd)
 
-    # sl_0.nq_factor_0 = (
-    # (np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_0.phi))))
-    # if sl_0.phi == 0:
-    #     sl_0.nc_factor_0 = 5.14
-    # else:
-    #     sl_0.nc_factor_0 = (sl_0.nq_factor_0 - 1) / np.tan(np.deg2rad(sl_0.phi))
-    # sl_0.ng_factor_0 = (sl_0.nq_factor_0 - 1) * np.tan(1.4 * np.deg2rad(sl_0.phi))
-    #
-    # sl_1.nq_factor_1 = (
-    #     (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2 * np.exp(np.pi * np.tan(np.deg2rad(sl_1.phi))))
-    # if sl_1.phi == 0:
-    #     sl_1.nc_factor_1 = 5.14
-    # else:
-    #     sl_1.nc_factor_1 = (sl_1.nq_factor_1 - 1) / np.tan(np.deg2rad(sl_1.phi))
-    # sl_1.ng_factor_1 = (sl_1.nq_factor_1 - 1) * np.tan(1.4 * np.deg2rad(sl_1.phi))
-    #
-    # if verbose:
-    #     log("Nc: ", sl_1.nc_factor_1)
-    #     log("Nq: ", sl_1.nq_factor_1)
-    #     log("Ng: ", sl_1.ng_factor_1)
-    #
-    # sl_0.kp_0 = (np.tan(np.pi / 4 + np.deg2rad(sl_0.phi / 2))) ** 2
-    # sl_1.kp_1 = (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2
-    #
-    # # shape factors
-    # if sl_0.phi >= 10:
-    #     sl_0.s_c_0 = 1 + 0.2 * sl_0.kp_0 * (fd.width / fd.length)
-    #     sl_0.s_q_0 = 1.0 + 0.1 * sl_0.kp_0 * (fd.width / fd.length)
-    # else:
-    #     sl_0.s_c_0 = 1 + 0.2 * (fd.width / fd.length)
-    #     sl_0.s_q_0 = 1.0
-    # sl_0.s_g_0 = sl_0.s_q_0
-    #
-    # if sl_1.phi >= 10:
-    #     sl_1.s_c_1 = 1 + 0.2 * sl_1.kp_1 * (fd.width / fd.length)
-    #     sl_1.s_q_1 = 1.0 + 0.1 * sl_1.kp_1 * (fd.width / fd.length)
-    # else:
-    #     sl_1.s_c_1 = 1 + 0.2 * (fd.width / fd.length)
-    #     sl_1.s_q_1 = 1.0
-    # sl_1.s_g_1 = sl_1.s_q_1
-    #
-    # # Note: this method explicitly accounts for the foundation depth, so there are no depth factors
-    # # TODO: inclination factors, see doi.org/10.1139/t78-060
-    #
-    # # calculate the ca factor
-    # if sl_0.cohesion == 0:
-    #     c1_c0 = 0
-    # else:
-    #     c1_c0 = sl_1.cohesion / sl_0.cohesion
-    # x = np.array([0.000, 0.082, 0.206, 0.298, 0.404, 0.509, 0.598, 0.685, 0.772])
-    # y = np.array([0.627, 0.700, 0.794, 0.855, 0.912, 0.948, 0.968, 0.983, 0.997])
-    # ca_c0 = np.interp(c1_c0, x, y)
-    # ca = ca_c0 * sl_0.cohesion
-    #
-    # # Capacity
-    # a = 1  # assumed to  be one but can range between 1.1 and 1.27 for square footings according to Das (1999) Ch 4
-    # s = 1
-    #
-    # r = 1 + (fd.width / fd.length)
-    #
-    # # put the same things before that condition
-    # # effective weight not in the soil object
-    #
-    # if gwl == 0:  # case 1: GWL at surface
-    #     q_at_interface = sl_0.unit_bouy_weight * h0
-    #     unit_eff_weight_0_at_fd_depth = sl_0.unit_bouy_weight
-    #     unit_eff_weight_0_at_interface = sl_0.unit_bouy_weight
-    #     unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
-    #
-    # elif 0 < gwl <= fd.depth:  # Case 2: GWL at between foundation depth and surface
-    #     q_at_interface = (sl_0.unit_dry_weight * gwl) + (sl_0.unit_bouy_weight * (h0 - gwl))
-    #     q_d = (sl_0.unit_dry_weight * gwl) + (sl_0.unit_bouy_weight * (fd.depth - gwl))
-    #     unit_eff_weight_0_at_fd_depth = q_d / fd.depth
-    #     unit_eff_weight_0_at_interface = sl_0.unit_bouy_weight
-    #     unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
-    #
-    # elif fd.depth < gwl <= fd.width + fd.depth:
-    #     if gwl < h0:  # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
-    #
-    #         average_unit_bouy_weight = sl_0.unit_bouy_weight + (
-    #         ((gwl - fd.depth) / fd.width) * (sl_0.unit_dry_weight - sl_0.unit_bouy_weight))
-    #
-    #         q_at_interface = (sl_0.unit_dry_weight * gwl) + (sl_0.unit_bouy_weight * (h0 - gwl))
-    #         unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
-    #         unit_eff_weight_0_at_interface = average_unit_bouy_weight
-    #         unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
-    #
-    #     else:  # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
-    #         average_unit_bouy_weight = sl_1.unit_bouy_weight + (
-    #         ((gwl - h0) / fd.width) * (sl_1.unit_dry_weight - sl_1.unit_bouy_weight))
-    #
-    #         q_at_interface = sl_0.unit_dry_weight * h0
-    #         unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
-    #         unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
-    #         unit_eff_weight_1_below_foundation = average_unit_bouy_weight
-    #
-    # elif gwl > fd.depth + fd.width:  # Case 5: GWL beyond foundation depth plus width
-    #     q_at_interface = sl_0.unit_dry_weight * h0
-    #     unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
-    #     unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
-    #     unit_eff_weight_1_below_foundation = sl_1.unit_dry_weight
-    # else:
-    #     raise ValueError("Could not interpret inputs")  # never reached
-    #
-    # # maximum value (qu <= qt)
-    # q_ult6 = q_at_interface - unit_eff_weight_0_at_fd_depth * fd.depth
-    # q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * unit_eff_weight_0_at_interface * fd.width * sl_0.ng_factor_0)
-    # q_b2 = (q_at_interface * sl_1.nq_factor_1 * sl_1.s_q_1)
-    # q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * unit_eff_weight_1_below_foundation * fd.width * sl_1.ng_factor_1)
-    # q_b3 = (unit_eff_weight_1_below_foundation * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
-    # q_ult5 = r * (unit_eff_weight_0_at_interface * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-    #     np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
-    # q_t2 = (unit_eff_weight_0_at_fd_depth * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-    # q_t3 = (unit_eff_weight_0_at_interface * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
-    #
-    # # qb
-    # q_b1 = (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
-    # q_b = q_b1 + q_b2 + q_b3
-    #
-    # # ks
-    # q1_q0 = q_1 / q_0
-    #
-    # x_0 = np.array([0, 20.08, 22.42, 25.08, 27.58, 30.08, 32.58, 34.92, 37.83, 40.00, 42.67, 45.00, 47.00, 49.75])
-    # y_0 = np.array([0.93, 0.93, 0.93, 0.93, 1.01, 1.17, 1.32, 1.56, 1.87, 2.26, 2.72, 3.35, 3.81, 4.82])
-    # x_2 = np.array([0, 20.08, 22.50, 25.08, 27.58, 30.08, 32.50, 35.00, 37.67, 40.17, 42.67, 45.00, 47.50, 50.00])
-    # y_2 = np.array([1.55, 1.55, 1.71, 1.86, 2.10, 2.33, 2.72, 3.11, 3.81, 4.43, 5.28, 6.14, 7.46, 9.24])
-    # x_4 = np.array([0, 20.00, 22.51, 25.10, 27.69, 30.11, 32.45, 35.04, 37.88, 40.14, 42.65, 45.07, 47.33, 50.08])
-    # y_4 = np.array([2.49, 2.49, 2.64, 2.87, 3.34, 3.81, 4.43, 5.20, 6.29, 7.38, 9.01, 11.11, 14.29, 19.34])
-    # x_10 = np.array([0, 20.00, 22.50, 25.08, 28.00, 30.00, 32.50, 34.92, 37.50, 40.17, 42.42, 45.00, 47.17, 50.08])
-    # y_10 = np.array([3.27, 3.27, 3.74, 4.44, 5.37, 6.07, 7.16, 8.33, 10.04, 12.30, 15.95, 21.17, 27.47, 40.00])
-    # x_int = sl_0.phi
-    #
-    # if sl_0.phi < 1:
-    #     fd.ks = 0
-    # else:
-    #
-    #     if q1_q0 == 0:
-    #         fd.ks = np.interp(x_int, x_0, y_0)
-    #
-    #     elif q1_q0 == 0.2:
-    #         fd.ks = np.interp(x_int, x_2, y_2)
-    #
-    #     elif q1_q0 == 0.4:
-    #         fd.ks = np.interp(x_int, x_4, y_4)
-    #
-    #     elif q1_q0 == 1.0:
-    #         fd.ks = np.interp(x_int, x_10, y_10)
-    #
-    #     elif 0 < q1_q0 < 0.2:
-    #         ks_1 = np.interp(x_int, x_0, y_0)
-    #         ks_2 = np.interp(x_int, x_2, y_2)
-    #         fd.ks = (((ks_2 - ks_1) * q1_q0) / 0.2) + ks_1
-    #
-    #     elif 0.2 < q1_q0 < 0.4:
-    #         ks_1 = np.interp(x_int, x_2, y_2)
-    #         ks_2 = np.interp(x_int, x_4, y_4)
-    #         fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.2)) / 0.2) + ks_1
-    #
-    #     elif 0.4 < q1_q0 < 1.0:
-    #         ks_1 = np.interp(x_int, x_4, y_4)
-    #         ks_2 = np.interp(x_int, x_10, y_10)
-    #         fd.ks = (((ks_2 - ks_1) * (q1_q0 - 0.4)) / 0.6) + ks_1
-    #     else:
-    #         raise DesignError(
-    #             "Cannot compute 'ks', bearing ratio out-of-range (q1_q0 = %.3f) required: 0-1." % q1_q0)
-    #
-    # # qu
-    # q_ult4 = (r * (2 * ca * (h0 - fd.depth) / fd.width) * a)
-    # q_ult5_ks = q_ult5 * fd.ks
-    # q_ult = q_b + q_ult4 + q_ult5_ks - q_ult6
-    #
-    # q_t1 = (sl_0.cohesion * sl_0.nc_factor_0 * sl_0.s_c_0)
-    # q_t = q_t1 + q_t2 + q_t3
-    #
-    # if q_ult > q_t:
-    #     fd.q_ult = q_t
-    # else:
-    #     fd.q_ult = q_ult
-    #
-    # return fd.q_ult
-
 
 def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
     """
@@ -1123,6 +853,12 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
     :return: ultimate bearing stress
     """
     assert isinstance(sp, sm.SoilProfile)
+    if fd.length > fd.width:  # TODO: deal with plane strain
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
 
     sl_0 = sp.layer(1)
     sl_1 = sp.layer(2)
@@ -1155,18 +891,18 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
 
     # shape factors
     if sl_0.phi >= 10:
-        sl_0.s_c_0 = 1 + 0.2 * sl_0.kp_0 * (fd.width / fd.length)
-        sl_0.s_q_0 = 1.0 + 0.1 * sl_0.kp_0 * (fd.width / fd.length)
+        sl_0.s_c_0 = 1 + 0.2 * sl_0.kp_0 * (fd_width / fd_length)
+        sl_0.s_q_0 = 1.0 + 0.1 * sl_0.kp_0 * (fd_width / fd_length)
     else:
-        sl_0.s_c_0 = 1 + 0.2 * (fd.width / fd.length)
+        sl_0.s_c_0 = 1 + 0.2 * (fd_width / fd_length)
         sl_0.s_q_0 = 1.0
     sl_0.s_g_0 = sl_0.s_q_0
 
     if sl_1.phi >= 10:
-        sl_1.s_c_1 = 1 + 0.2 * sl_1.kp_1 * (fd.width / fd.length)
-        sl_1.s_q_1 = 1.0 + 0.1 * sl_1.kp_1 * (fd.width / fd.length)
+        sl_1.s_c_1 = 1 + 0.2 * sl_1.kp_1 * (fd_width / fd_length)
+        sl_1.s_q_1 = 1.0 + 0.1 * sl_1.kp_1 * (fd_width / fd_length)
     else:
-        sl_1.s_c_1 = 1 + 0.2 * (fd.width / fd.length)
+        sl_1.s_c_1 = 1 + 0.2 * (fd_width / fd_length)
         sl_1.s_q_1 = 1.0
     sl_1.s_g_1 = sl_1.s_q_1
 
@@ -1177,7 +913,7 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
     a = 1  # assumed to  be one but can range between 1.1 and 1.27 for square footings according to Das (1999) Ch 4
     s = 1
 
-    r = 1 + (fd.width / fd.length)
+    r = 1 + (fd_width / fd_length)
 
     # put the same things before that condition
     # effective weight not in the soil object
@@ -1195,11 +931,11 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
         unit_eff_weight_0_at_interface = sl_0.unit_bouy_weight
         unit_eff_weight_1_below_foundation = sl_1.unit_bouy_weight
 
-    elif fd.depth < gwl <= fd.width + fd.depth:
+    elif fd.depth < gwl <= fd_width + fd.depth:
         if gwl < h0:  # Case 3: GWL at between foundation depth and foundation depth plus width, and GWL < layer 1 depth
 
             average_unit_bouy_weight = sl_0.unit_bouy_weight + (
-            ((gwl - fd.depth) / fd.width) * (sl_0.unit_dry_weight - sl_0.unit_bouy_weight))
+            ((gwl - fd.depth) / fd_width) * (sl_0.unit_dry_weight - sl_0.unit_bouy_weight))
 
             q_at_interface = (sl_0.unit_dry_weight * gwl) + (sl_0.unit_bouy_weight * (h0 - gwl))
             unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
@@ -1208,14 +944,14 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
 
         else:  # Case 4: GWL at between foundation depth and foundation depth plus width, and GWL > layer 1 depth
             average_unit_bouy_weight = sl_1.unit_bouy_weight + (
-            ((gwl - h0) / fd.width) * (sl_1.unit_dry_weight - sl_1.unit_bouy_weight))
+            ((gwl - h0) / fd_width) * (sl_1.unit_dry_weight - sl_1.unit_bouy_weight))
 
             q_at_interface = sl_0.unit_dry_weight * h0
             unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
             unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
             unit_eff_weight_1_below_foundation = average_unit_bouy_weight
 
-    elif gwl > fd.depth + fd.width:  # Case 5: GWL beyond foundation depth plus width
+    elif gwl > fd.depth + fd_width:  # Case 5: GWL beyond foundation depth plus width
         q_at_interface = sl_0.unit_dry_weight * h0
         unit_eff_weight_0_at_fd_depth = sl_0.unit_dry_weight
         unit_eff_weight_0_at_interface = sl_0.unit_dry_weight
@@ -1225,14 +961,14 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
 
     # maximum value (qu <= qt)
     q_ult6 = q_at_interface - unit_eff_weight_0_at_fd_depth * fd.depth
-    q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * unit_eff_weight_0_at_interface * fd.width * sl_0.ng_factor_0)
+    q_0 = (sl_0.cohesion * sl_0.nc_factor_0) + (0.5 * unit_eff_weight_0_at_interface * fd_width * sl_0.ng_factor_0)
     q_b2 = (q_at_interface * sl_1.nq_factor_1 * sl_1.s_q_1)
-    q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * unit_eff_weight_1_below_foundation * fd.width * sl_1.ng_factor_1)
-    q_b3 = (unit_eff_weight_1_below_foundation * fd.width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
+    q_1 = (sl_1.cohesion * sl_1.nc_factor_1) + (0.5 * unit_eff_weight_1_below_foundation * fd_width * sl_1.ng_factor_1)
+    q_b3 = (unit_eff_weight_1_below_foundation * fd_width * sl_1.ng_factor_1 * sl_1.s_g_1 / 2)
     q_ult5 = r * (unit_eff_weight_0_at_interface * ((h0 - fd.depth) ** 2)) * (1 + (2 * fd.depth / (h0 - fd.depth))) * (
-        np.tan(np.deg2rad(sl_0.phi)) / fd.width) * s
+        np.tan(np.deg2rad(sl_0.phi)) / fd_width) * s
     q_t2 = (unit_eff_weight_0_at_fd_depth * fd.depth * sl_0.nq_factor_0 * sl_0.s_q_0)
-    q_t3 = (unit_eff_weight_0_at_interface * fd.width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
+    q_t3 = (unit_eff_weight_0_at_interface * fd_width * sl_0.ng_factor_0 * sl_0.s_g_0 / 2)
 
     # qb
     q_b1 = (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)
@@ -1298,7 +1034,7 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
                 "Cannot compute 'ks', bearing ratio out-of-range (q1_q0 = %.3f) required: 0-1." % q1_q0)
 
     # qu
-    q_ult4 = (r * (2 * ca * (h0 - fd.depth) / fd.width) * a)
+    q_ult4 = (r * (2 * ca * (h0 - fd.depth) / fd_width) * a)
     q_ult5_ks = q_ult5 * fd.ks
     q_ult = q_b + q_ult4 + q_ult5_ks - q_ult6
 
@@ -1306,12 +1042,12 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
     q_t = q_t1 + q_t2 + q_t3
 
     if q_ult > q_t:
-        if h0 > fd.width/2:
+        if h0 > fd_width/2:
             fd.q_ult = q_t
 
         else:
             vert_eff_stress_interface = sp.vertical_effective_stress(h0)
-            vert_eff_stress_lowest = sp.vertical_effective_stress(fd.width+fd.depth)
+            vert_eff_stress_lowest = sp.vertical_effective_stress(fd_width+fd.depth)
             average_eff_stress = (vert_eff_stress_interface + vert_eff_stress_lowest) / 2
 
             c_2_eff = sl_1.cohesion + average_eff_stress * np.tan(np.radians(sl_1.phi))
@@ -1329,8 +1065,8 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
                 # vd[0.2] = [1, 1.121, 1.235, 1.342, 1.444]
                 # vd[0.1] = [1, 1.154, 1.302, 1.446, 1.584]
 
-                h_over_b = (h0 - fd.depth)/fd.width
-                c1_over_c2 =sl_0.cohesion/c_2_eff
+                h_over_b = (h0 - fd.depth) / fd_width
+                c1_over_c2 = sl_0.cohesion/c_2_eff
 
                 c_1_over_c_2 = [0.1, 0.2, 0.25, 0.333, 0.5, 0.667, 1.]
                 m_1 = [1.584, 1.444, 1.389, 1.311, 1.193, 1.109, 1.]

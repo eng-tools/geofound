@@ -272,6 +272,39 @@ def test_size_foundations():
                 assert np.isclose(actual_fos, fos, rtol=0.11), (fos, vertical_load, method)
 
 
+def test_calc_crit_length():
+    length = 6.0  # actually a strip in
+    width = 3.0
+    depth = 1.5
+    phi = 0.0
+    cohesion = 40.0
+    unit_dry_weight = 18.0
+    sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
+    fd = geofound.create_foundation(length, width, depth)
+    vload = 3000.0
+    crit_len = geofound.capacity.calc_crit_length(sl, fd, vload)
+
+    assert np.isclose(crit_len, 3.149, rtol=0.001), crit_len
+
+
+def test_very_short_foundation_w_vesics():
+    length = 0.265  # actually a strip in
+    width = 4.7
+    depth = 2.24
+    fd = geofound.create_foundation(length, width, depth)
+    width = 0.265
+    length = 4.7
+    fdo = geofound.create_foundation(length, width, depth)
+    phi = 32.0
+    cohesion = 0.0
+    unit_dry_weight = 14943.15
+    sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
+
+    q_ult = geofound.capacity_vesics_1975(sl, fd)
+    q_ulto = geofound.capacity_vesics_1975(sl, fdo)
+    assert np.isclose(q_ult, q_ulto, rtol=0.001)
+
+
 def test_meyerhof_and_hanna_capacity_strong_sand_over_weak_clay():
     # STRONG SAND OVER WEAK CLAY
     length = 1000000.0  # actually a strip in
@@ -552,6 +585,6 @@ def load_soil_sample_data2(sl1):
 
 
 if __name__ == '__main__':
-    test_capacity_sp_meyerhof_and_hanna_1978()
+    test_very_short_foundation_w_vesics()
     # test_meyerhof_and_hanna_capacity_sand_over_sand_gwl()
     # test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand()

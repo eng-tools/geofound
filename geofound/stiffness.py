@@ -207,3 +207,6 @@ def calc_vert_via_pais_1988(sl, fd, a0=0.0):
 
 def get_vert_gazetas_1991(sl, fd, a0):
     return calc_vert_via_gazetas_1991(sl, fd, a0)
+
+def get_rot_via_gazetas_1991(sl, fd, axis="length", a0=0.0, f_contact=1.0, **kwargs):
+    return calc_rotational_via_gazetas_1991(sl, fd, axis=axis, a0=a0, f_contact=f_contact, **kwargs)

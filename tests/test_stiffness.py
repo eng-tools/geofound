@@ -13,8 +13,8 @@ def test_rotation():
     i_ww = length ** 3 * width / 12
     assert geofound.isclose(fd.i_ll, i_ll, rel_tol=0.001)
     assert geofound.isclose(fd.i_ww, i_ww, rel_tol=0.001)
-    assert geofound.isclose(geofound.rotational_stiffness(sl, fd, axis="length"), 218027424.1324, rel_tol=0.01)
-    assert geofound.isclose(geofound.rotational_stiffness(sl, fd, axis="width"), 422150729.0333, rel_tol=0.01)
+    assert geofound.isclose(geofound.stiffness.rotational_stiffness(sl, fd, axis="length"), 218027424.1324, rel_tol=0.01)
+    assert geofound.isclose(geofound.stiffness.rotational_stiffness(sl, fd, axis="width"), 422150729.0333, rel_tol=0.01)
 
 
 if __name__ == '__main__':

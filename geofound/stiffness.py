@@ -1,33 +1,56 @@
 import geofound as gf
 
 
-def rotational_stiffness(sl, fd, axis="length", a0=0.0, method='gazetas_1991', **kwargs):
+def rotational_stiffness(sl, fd, ip_axis="width", axis=None, a0=0.0, method='gazetas_1991', **kwargs):
     """
     Rotation stiffness of foundation.
 
-    :param fd: Foundation object
-    :param sl: Soil Object.
-    :param axis: The axis which it should be computed around
-    :return:
+    Parameters
+    ----------
+    fd: Foundation object
+    sl: Soil Object.
+    ip_axis: str
+        The axis that is in the plane of deformation
+    axis: str
+        The axis which it should be computed around (if not None, then ip_axis is ignored)
+
+    k_f: float
+        Rotational stiffness of the foundation
     """
     if method == 'gazetas_1991':
-        return calc_rotational_via_gazetas_1991(sl, fd, axis=axis, a0=a0, **kwargs)
+        return calc_rotational_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, **kwargs)
     else:
-        return calc_rotational_via_pais_1988(sl, fd, axis=axis, a0=a0, **kwargs)
+        return calc_rotational_via_pais_1988(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, **kwargs)
 
 
-def calc_rotational_via_pais_1988(sl, fd, axis="length", a0=0.0, **kwargs):
+def calc_rotational_via_pais_1988(sl, fd, ip_axis='width', axis=None, a0=0.0, **kwargs):
     """
     Rotation stiffness of foundation from Pais and Kausel (1988).
 
-    :param fd: Foundation object
-    :param sl: Soil Object.
-    :param axis: The axis which it should be computed around
-    :return:
+    Parameters
+    ----------
+    fd: Foundation object
+    sl: Soil Object
+    ip_axis: str
+        The axis that is in the plane of deformation
+    axis: str
+     The axis which it should be computed around (if not None, then ip_axis is ignored)
+    a0: float
+        dynamic factor
+
+    Returns
+    -------
+    k_f: float
+        Rotational stiffness of the foundation
     """
     if not kwargs.get("disable_requires", False):
         gf.models.check_required(sl, ["g_mod", "poissons_ratio"])
         gf.models.check_required(fd, ["length", "width", "depth"])
+    if axis is not None:
+        if axis == 'length':
+            ip_axis = 'width'
+        else:
+            ip_axis = 'length'
 
     if fd.i_ll >= fd.i_ww:
         len_dominant = True
@@ -37,7 +60,7 @@ def calc_rotational_via_pais_1988(sl, fd, axis="length", a0=0.0, **kwargs):
         len_dominant = False
         l = fd.width * 0.5
         b = fd.length * 0.5
-    if (axis == 'length' and len_dominant) or (axis == 'width' and not len_dominant):
+    if (ip_axis == 'width' and len_dominant) or (ip_axis == 'length' and not len_dominant):
         x_axis = True
     else:
         x_axis = False
@@ -59,20 +82,23 @@ def calc_rotational_via_pais_1988(sl, fd, axis="length", a0=0.0, **kwargs):
     return k_f_0 * n_emb
 
 
-def calc_rotational_via_gazetas_1991(sl, fd, axis="length", a0=0.0, f_contact=1.0, **kwargs):
+def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis="length", a0=0.0, f_contact=1.0, **kwargs):
     """
     Rotation stiffness of foundation from Gazetas (1991) and Mylonakis et al. (2006)
 
     Parameters
     ----------
     fd: Foundation object
-    sl: Soil Object.
+    sl: Soil Object
+    ip_axis: str
+        The axis that is in the plane of deformation
     axis: str
-        The axis which it should be computed around
+     The axis which it should be computed around (if not None, then ip_axis is ignored)
     a0: float
         dynamic factor
     f_contact: float
         Effective sidewall contact scaling factor
+
     Returns
     -------
     k_f: float
@@ -81,6 +107,11 @@ def calc_rotational_via_gazetas_1991(sl, fd, axis="length", a0=0.0, f_contact=1.
     if not kwargs.get("disable_requires", False):
         gf.models.check_required(sl, ["g_mod", "poissons_ratio"])
         gf.models.check_required(fd, ["length", "width", "depth"])
+    if axis is not None:
+        if axis == 'length':
+            ip_axis = 'width'
+        else:
+            ip_axis = 'length'
 
     if fd.i_ww >= fd.i_ll:
         len_dominant = True
@@ -94,7 +125,7 @@ def calc_rotational_via_gazetas_1991(sl, fd, axis="length", a0=0.0, f_contact=1.
         b = fd.length * 0.5
         i_by = fd.i_ll
         i_bx = fd.i_ww
-    if (axis == 'length' and len_dominant) or (axis == 'width' and not len_dominant):
+    if (ip_axis == 'width' and len_dominant) or (ip_axis == 'length' and not len_dominant):
         x_axis = True
     else:
         x_axis = False
@@ -124,7 +155,7 @@ def shear_stiffness(f_length, f_breadth, soil_g, soil_v):
     return k_shear
 
 
-def calc_shear_via_gazetas_1991(sl, fd, axis='width', a0=0.0, f_contact=1.0):
+def calc_shear_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0):
     """
     Calculate the shear stiffness for translation along an axis.
 
@@ -132,13 +163,16 @@ def calc_shear_via_gazetas_1991(sl, fd, axis='width', a0=0.0, f_contact=1.0):
     ----------
     fd
     sl
-    axis
+    ip_axis: str
+        The axis that is in the plane of deformation
     a0
 
     Returns
     -------
 
     """
+    if axis is not None:
+        ip_axis = axis
     # TODO: ADD depth correction
     n_emb = 1.0
     if fd.length >= fd.width:
@@ -149,7 +183,7 @@ def calc_shear_via_gazetas_1991(sl, fd, axis='width', a0=0.0, f_contact=1.0):
         len_dominant = False
         l = fd.width * 0.5
         b = fd.length * 0.5
-    if (axis == 'length' and len_dominant) or (axis == 'width' and not len_dominant):
+    if (ip_axis == 'length' and len_dominant) or (ip_axis == 'width' and not len_dominant):
         y_axis = True  # Direction of l
     else:
         y_axis = False  # Direction of b
@@ -205,8 +239,10 @@ def calc_vert_via_pais_1988(sl, fd, a0=0.0):
     k_v_0 = sl.g_mod * b / (1 - v) * (3.1 * (l / b) ** 0.75 + 1.6)
     return k_v_0
 
+
 def get_vert_gazetas_1991(sl, fd, a0):
     return calc_vert_via_gazetas_1991(sl, fd, a0)
 
-def get_rot_via_gazetas_1991(sl, fd, axis="length", a0=0.0, f_contact=1.0, **kwargs):
-    return calc_rotational_via_gazetas_1991(sl, fd, axis=axis, a0=a0, f_contact=f_contact, **kwargs)
+
+def get_rot_via_gazetas_1991(sl, fd, ip_axis="length", a0=0.0, f_contact=1.0, **kwargs):
+    return calc_rotational_via_gazetas_1991(sl, fd, ip_axis=ip_axis, a0=a0, f_contact=f_contact, **kwargs)

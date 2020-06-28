@@ -8,7 +8,16 @@ class Soil(models.Soil):
     gwl = 100000.0  # ground water level
 
 
-class FoundationRaft(models.FoundationRaft):
+class FoundationRaft(models.RaftFoundation):
+    q_ult = 0.0
+    nc_factor = 0.0
+    ng_factor = 0.0
+    nq_factor = 0.0
+
+    def __repr__(self):
+        return self.length, self.width, self.height
+
+class RaftFoundation(models.RaftFoundation):
     q_ult = 0.0
     nc_factor = 0.0
     ng_factor = 0.0

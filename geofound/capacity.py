@@ -6,7 +6,7 @@ from geofound import models
 import sfsimodels as sm
 
 
-def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs):
+def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs):
     """
     Calculates the foundation capacity according Vesics(1975)
     #Gunaratne, Manjriker. 2006. "Spread Footings: Analysis and Design."
@@ -143,6 +143,9 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     if verbose:
         log("qult: ", fd.q_ult)
     return fd.q_ult
+
+def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs):
+    return capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs)
 
 
 def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
@@ -665,7 +668,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     :param verbose: verbosity
     :return: a Foundation object
     """
-    method = kwargs.get("method", 'vesics')
+    method = kwargs.get("method", 'vesic')
     depth_to_width = kwargs.get("depth_to_width", 0)
     depth = kwargs.get("depth", 0)
     use_depth_to_width = 0
@@ -742,7 +745,7 @@ def calc_crit_length(sl, fd, vertical_load, verbose=0, **kwargs):
     :param verbose: verbosity
     :return: a Foundation object
     """
-    method = kwargs.get("method", 'vesics')
+    method = kwargs.get("method", 'vesic')
 
 
     # Find approximate size
@@ -785,8 +788,10 @@ def capacity_method_selector(sl, fd, method, **kwargs):
     :return:
     """
 
+    if method == 'vesic':
+        return capacity_vesic_1975(sl, fd, **kwargs)
     if method == 'vesics':
-        return capacity_vesics_1975(sl, fd, **kwargs)
+        return capacity_vesic_1975(sl, fd, **kwargs)
     elif method == 'nzs':
         return capacity_nzs_vm4_2011(sl, fd, **kwargs)
     elif method == 'terzaghi':
@@ -797,10 +802,12 @@ def capacity_method_selector(sl, fd, method, **kwargs):
         return capacity_meyerhof_1963(sl, fd, **kwargs)
     elif method == 'salgado':
         return capacity_salgado_2008(sl, fd, **kwargs)
+    else:
+        raise ValueError("method must be 'vesic', 'nzs', 'terzaghi', ")
 
 
 available_methods = {
-    "vesics": capacity_vesics_1975,
+    "vesic": capacity_vesics_1975,
     "nzs": capacity_nzs_vm4_2011,
     "terzaghi": capacity_terzaghi_1943,
     "hansen": capacity_hansen_1970,

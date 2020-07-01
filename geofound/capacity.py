@@ -1115,3 +1115,37 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
         fd.q_ult = q_ult
 
     return fd.q_ult
+
+
+
+
+def calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max):
+    c = 0.22
+    t = qv_max
+    s = qm_max * b
+    m = 0.5 * (2 * c * s * v / t - s ** 2 * np.sqrt((4 * c ** 2 * v ** 2 / (s ** 2 * t ** 2) -
+        4 * (-n ** 4 / n_max ** 2 + 2 * n ** 3 / n_max - n ** 2 + v ** 2 / t ** 2) / s ** 2)))
+
+    m = c * s * v / t - s * (np.sqrt((c ** 2 - 1) * v ** 2 / t ** 2 + n ** 2 * (n - n_max) ** 2 / n_max ** 2))
+
+    return -m
+
+
+def run():
+    import matplotlib.pyplot as plt
+    n = 0.5
+    n_max = 1
+    b = 3
+    qv_max = 0.13
+    qm_max = 0.48
+    v = np.linspace(0, qv_max, 10)
+    # m = calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max)
+    # plt.plot(v / n_max, m / (b * n_max))
+    v = 0
+    n = np.linspace(0.1, 0.9, 10)
+    m = calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max)
+    plt.plot(n / n_max, m / (b * n_max))
+    plt.show()
+
+if __name__ == '__main__':
+    run()

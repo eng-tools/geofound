@@ -82,7 +82,7 @@ def calc_rotational_via_pais_1988(sl, fd, ip_axis='width', axis=None, a0=0.0, **
     return k_f_0 * n_emb
 
 
-def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis="length", a0=0.0, f_contact=1.0, **kwargs):
+def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0, **kwargs):
     """
     Rotation stiffness of foundation from Gazetas (1991) and Mylonakis et al. (2006)
 
@@ -126,24 +126,29 @@ def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis="length", a0=
         i_by = fd.i_ll
         i_bx = fd.i_ww
     if (ip_axis == 'width' and len_dominant) or (ip_axis == 'length' and not len_dominant):
-        x_axis = True
+        xx_axis = True  # weaker rotation
     else:
-        x_axis = False
+        xx_axis = False
 
     v = sl.poissons_ratio
     n_emb = 1.0
-    if x_axis:
+    if xx_axis:
         k_rx = 1 - 0.2 * a0
         k_f_0 = (sl.g_mod / (1 - v) * i_bx ** 0.75 * (l / b) ** 0.25 * (2.4 + 0.5 * (b / l))) * k_rx
         if fd.depth > 0.0:
             dw = min(fd.height, fd.depth) * f_contact
-            n_emb = 1 + 1.26 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
-    else:
-        k_ry = 1 - 0.3 * a0
+            n_emb = 1 + 1.26 * (dw / b) * (1. + (dw / b) * (dw / fd.depth) ** -0.2 * (b / l) ** 0.5)
+    else:  # yy_axis (rotation about y-axis)
+        if v < 0.45:
+            k_ry = 1 - 0.3 * a0
+        else:
+            k_ry = 1 - 0.25 * a0 * (l / b) ** 0.3
         k_f_0 = (sl.g_mod / (1 - v) * i_by ** 0.75 * (3 * (l / b) ** 0.15)) * k_ry
         if fd.depth > 0.0:
             dw = min(fd.height, fd.depth) * f_contact
-            n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.0 + (dw / fd.depth) ** -0.2 * (b / l) ** 0.5)
+            # Note that the original Gazetas (1991) paper has (dw / L) ** 1.9 * (dw / D) ** -0.6
+            # whereas Mylonakis has this form:
+            n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
     return k_f_0 * n_emb
 
 

@@ -1126,26 +1126,49 @@ def calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_ma
     m = 0.5 * (2 * c * s * v / t - s ** 2 * np.sqrt((4 * c ** 2 * v ** 2 / (s ** 2 * t ** 2) -
         4 * (-n ** 4 / n_max ** 2 + 2 * n ** 3 / n_max - n ** 2 + v ** 2 / t ** 2) / s ** 2)))
 
-    m = c * s * v / t - s * (np.sqrt((c ** 2 - 1) * v ** 2 / t ** 2 + n ** 2 * (n - n_max) ** 2 / n_max ** 2))
+    m = c * s * v / t - s * (np.sqrt((c ** 2 - 1) * v ** 2 / t ** 2 + n ** 2 * (n - n_max) ** 2 / n_max ** 2)) / t
+    # m = s * np.sqrt(c ** 2 * v ** 2 + n ** 4 * t ** 2 - 2 * n ** 3 * t ** 2 - v ** 2) / t + c * s * v / t
+    return m
 
-    return -m
+
+def calc_norm_shear_bs_via_butterfield_et_al_1994(n, r, qv_max, qm_max):
+    c = 0.22
+    t = qv_max
+    s = qm_max
+    v2 = (n - 1) * n * s * t / (np.sqrt(2 * c * r * s * t - r ** 2 * t ** 2 - s ** 2))
+    return v2
+
+def calc_norm_shear_bs(n, m):
+    c = 0.22
+    u = (c ** 2 - 1) * m ** 2 + (n - 1) ** 2 * n ** 2
 
 
 def run():
     import matplotlib.pyplot as plt
     n = 0.5
     n_max = 1
-    b = 3
-    qv_max = 0.13
-    qm_max = 0.48
-    v = np.linspace(0, qv_max, 10)
+    b = 1
+    qv_max = 0.52
+    qm_max = 0.35
+    v = np.linspace(0.1, 0.14, 20)
     # m = calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max)
-    # plt.plot(v / n_max, m / (b * n_max))
+    # for i in range(len(m)):
+    #     print(i, v[i], m[i])
+    # plt.plot(v / n_max, m / (n_max))
     v = 0
     n = np.linspace(0.1, 0.9, 10)
-    m = calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max)
-    plt.plot(n / n_max, m / (b * n_max))
+    n = 0.5
+    r = np.logspace(-1, 2, 5)
+    qv = calc_norm_shear_bs_via_butterfield_et_al_1994(n, r, qv_max, qm_max)
+    print(qv)
+    qm = r * qv
+    plt.plot(qv, qm)
+    # m = calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max)
+    # plt.plot(n / n_max, m / (b * n_max))
     plt.show()
+
+
+
 
 if __name__ == '__main__':
     run()

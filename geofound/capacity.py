@@ -349,14 +349,14 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
+    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+
     if fd.length > fd.width:  # TODO: deal with plane strain
         fd_length = fd.length
         fd_width = fd.width
     else:
         fd_length = fd.width
         fd_width = fd.length
-
-    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 *
                     np.exp(np.pi * np.tan(sl.phi_r)))
@@ -460,21 +460,31 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
+
+    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+
+    v_l = kwargs.get("loc_v_l", fd.length / 2)  # given in fd coordinates
+    v_b = kwargs.get("loc_v_b", fd.width / 2)
+    h_eff_b = kwargs.get("h_eff_b", 0)
+    h_eff_l = kwargs.get("h_eff_l", 0)
+
     if fd.length > fd.width:  # TODO: deal with plane strain
         fd_length = fd.length
         fd_width = fd.width
+        loc_v_l = v_l
+        loc_v_b = v_b
+        loc_h_b = h_b
+        loc_h_l = h_l
     else:
         fd_length = fd.width
         fd_width = fd.length
-    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+        loc_v_l = v_b
+        loc_v_b = v_l
+        loc_h_b = h_l
+        loc_h_l = h_b
 
-    h_eff_b = kwargs.get("h_eff_b", 0)
-    h_eff_l = kwargs.get("h_eff_l", 0)
-    loc_v_l = kwargs.get("loc_v_l", fd_length / 2)
-    loc_v_b = kwargs.get("loc_v_b", fd_width / 2)
-
-    ecc_b = h_b * h_eff_b / vertical_load
-    ecc_l = h_l * h_eff_l / vertical_load
+    ecc_b = loc_h_b * h_eff_b / vertical_load
+    ecc_l = loc_h_l * h_eff_l / vertical_load
 
     width_eff = min(fd_width, 2 *
                     (loc_v_b + ecc_b), 2 * (fd_width - loc_v_b - ecc_b))
@@ -588,20 +598,29 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
+    v_l = kwargs.get("loc_v_l", fd.length / 2)  # given in fd coordinates
+    v_b = kwargs.get("loc_v_b", fd.width / 2)
+    h_eff_b = kwargs.get("h_eff_b", 0)
+    h_eff_l = kwargs.get("h_eff_l", 0)
+    # TODO: implement phi as fn of sigma_m
+
     if fd.length > fd.width:  # TODO: deal with plane strain
         fd_length = fd.length
         fd_width = fd.width
+        loc_v_l = v_l
+        loc_v_b = v_b
+        loc_h_b = h_b
+        loc_h_l = h_l
     else:
         fd_length = fd.width
         fd_width = fd.length
+        loc_v_l = v_b
+        loc_v_b = v_l
+        loc_h_b = h_l
+        loc_h_l = h_b
 
-    h_eff_b = kwargs.get("h_eff_b", 0)
-    h_eff_l = kwargs.get("h_eff_l", 0)
-    loc_v_l = kwargs.get("loc_v_l", fd_length / 2)
-    loc_v_b = kwargs.get("loc_v_b", fd_width / 2)
-
-    ecc_b = h_b * h_eff_b / vertical_load
-    ecc_l = h_l * h_eff_l / vertical_load
+    ecc_b = loc_h_b * h_eff_b / vertical_load
+    ecc_l = loc_h_l * h_eff_l / vertical_load
 
     width_eff = min(fd_width, 2 * (loc_v_b + ecc_b), 2 * (fd_width - loc_v_b - ecc_b))
     length_eff = min(fd_length, 2 * (loc_v_l + ecc_l), 2 * (fd_length - loc_v_l - ecc_l))
@@ -625,7 +644,8 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     s_c = 1.0
 
     # depth factors:
-    d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * fd.depth / width_eff
+    d_over_b = min(1, fd.depth / width_eff)  # limit to 1
+    d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * d_over_b
     d_g = 1.0
     d_c = 1.0
 
@@ -734,7 +754,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     return fd
 
 
-def calc_crit_length(sl, fd, vertical_load, verbose=0, **kwargs):
+def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, **kwargs):
     """
     Determine the size of a footing given an aspect ratio and a load
 
@@ -747,23 +767,23 @@ def calc_crit_length(sl, fd, vertical_load, verbose=0, **kwargs):
     """
     method = kwargs.get("method", 'vesic')
 
-
     # Find approximate size
     new_fd = models.RaftFoundation()
     new_fd.width = fd.width
     new_fd.depth = fd.depth
     new_fd.length = fd.length
     prev_ub_len = fd.length
-    q_ult = capacity_method_selector(sl, new_fd, method)
+    q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1))
     init_fos = (q_ult * fd.area) / vertical_load
     if init_fos < 1.0:
         raise ValueError
     prev_lb_len = 0  # should be FOS lower than 1.
-    est_len = fd.length / init_fos
+    l_ip = getattr(fd, ip_axis)
+    est_len = l_ip / init_fos
     prev_q = q_ult
     for i in range(50):
-        new_fd.length = est_len
-        q = capacity_method_selector(sl, new_fd, method)
+        setattr(new_fd, ip_axis, est_len)
+        q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1))
         curr_fos = (q * new_fd.area) / vertical_load
         if np.isclose(curr_fos, 1.0, rtol=0.01):
             break

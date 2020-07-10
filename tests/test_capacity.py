@@ -282,7 +282,7 @@ def test_calc_crit_length():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     vload = 3000.0
-    crit_len = geofound.capacity.calc_crit_length(sl, fd, vload)
+    crit_len = geofound.capacity.calc_crit_span(sl, fd, vload, ip_axis='length')
 
     assert np.isclose(crit_len, 3.149, rtol=0.001), crit_len
 

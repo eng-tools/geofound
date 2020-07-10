@@ -1,4 +1,6 @@
 import geofound as gf
+from geofound.exceptions import EquationWarning
+import warnings
 
 
 def rotational_stiffness(sl, fd, ip_axis="width", axis=None, a0=0.0, method='gazetas_1991', **kwargs):
@@ -52,7 +54,7 @@ def calc_rotational_via_pais_1988(sl, fd, ip_axis='width', axis=None, a0=0.0, **
         else:
             ip_axis = 'length'
 
-    if fd.i_ll >= fd.i_ww:
+    if fd.i_ww >= fd.i_ll:
         len_dominant = True
         l = fd.length * 0.5
         b = fd.width * 0.5
@@ -68,13 +70,13 @@ def calc_rotational_via_pais_1988(sl, fd, ip_axis='width', axis=None, a0=0.0, **
     v = sl.poissons_ratio
     n_emb = 1
     if x_axis:
-        k_rx = 1 - 0.2 * a0
+        k_rx = 1 - ((0.55 + 0.01 * (l / b - 1) ** 0.5) * a0 ** 2 / ((2.4 - 0.4 / (l / b) ** 3) + a0 ** 2))
         # x-axis
         k_f_0 = (sl.g_mod * b ** 3 / (1 - v) * (3.2 * (l / b) + 0.8)) * k_rx
         if fd.depth > 0.0:
             n_emb = 1.0 + fd.depth / b + (1.6 / (0.35 + (l / b)) * (fd.depth / b) ** 2)
     else:
-        k_ry = 1 - 0.3 * a0
+        k_ry = 1 - (0.55 * a0 ** 2 / ((0.6 + 1.4 / (l / b) ** 3) + a0 ** 2))
         k_f_0 = (sl.g_mod * b ** 3 / (1 - v) * (3.73 * (l / b) ** 2.4 + 0.27)) * k_ry
         if fd.depth > 0.0:
             n_emb = 1.0 + fd.depth / b + (1.6 / (0.35 + (l / b) ** 4) * (fd.depth / b) ** 2)
@@ -137,6 +139,7 @@ def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0,
         k_f_0 = (sl.g_mod / (1 - v) * i_bx ** 0.75 * (l / b) ** 0.25 * (2.4 + 0.5 * (b / l))) * k_rx
         if fd.depth > 0.0:
             dw = min(fd.height, fd.depth) * f_contact
+            #note: in ATC-40 the 1.26 factor is 2.52
             n_emb = 1 + 1.26 * (dw / b) * (1. + (dw / b) * (dw / fd.depth) ** -0.2 * (b / l) ** 0.5)
     else:  # yy_axis (rotation about y-axis)
         if v < 0.45:
@@ -146,13 +149,18 @@ def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0,
         k_f_0 = (sl.g_mod / (1 - v) * i_by ** 0.75 * (3 * (l / b) ** 0.15)) * k_ry
         if fd.depth > 0.0:
             dw = min(fd.height, fd.depth) * f_contact
-            # Note that the original Gazetas (1991) paper has (dw / L) ** 1.9 * (dw / D) ** -0.6
+            # Note that the original Gazetas (1991) paper has (dw / L) ** 1.9 * (dw / D) ** -0.6, also in ATC-40
+            # From Gazetas (1983) it is explained that strip has much less embedment effect that circular, since less sidewall
+            n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / l) ** 1.9 * (dw / fd.depth) ** -0.6)
+            if fd.depth / b > 2. / 3:
+                warnings.warn('D/B should be less than or equal to 2/3 - See Gazetas (1983)', EquationWarning, stacklevel=2)
             # whereas Mylonakis has this form:
-            n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
+            # n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
     return k_f_0 * n_emb
 
 
 def shear_stiffness(f_length, f_breadth, soil_g, soil_v):
+    gf.exceptions.deprecation('shear_stiffness')
     l = f_length * 0.5
     b = f_breadth * 0.5
     k_y = 2 * soil_g * l / (2 - soil_v) * (2.0 + 2.5 * (b / l) ** 0.85)
@@ -176,6 +184,8 @@ def calc_shear_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_co
     -------
 
     """
+    if a0:
+        raise ValueError('dynamic stiffness not implemented')
     if axis is not None:
         ip_axis = axis
     # TODO: ADD depth correction
@@ -218,6 +228,7 @@ def dep_rotational_stiffness(f_length, f_breadth, soil_g, soil_v):
 
 
 def get_vert_pais_1988(sl, fd, a0):
+    gf.exceptions.deprecation('get_vert_pais_1988 has deprecated. use calc_vert_via_pais_1988')
     v = sl.poissons_ratio
     l = fd.length * 0.5
     b = fd.width * 0.5
@@ -225,7 +236,21 @@ def get_vert_pais_1988(sl, fd, a0):
     return k_v_0
 
 
-def calc_vert_via_gazetas_1991(sl, fd, a0=0.0, f_contact=1.0):
+def calc_vert_via_pais_1988(sl, fd, a0=0):
+    v = sl.poissons_ratio
+    l = fd.length * 0.5
+    b = fd.width * 0.5
+    k_v_0 = sl.g_mod * b / (1 - v) * (3.1 * (l / b) ** 0.75 + 1.6)
+    kz = 1 - ((0.4 + 0.2 / (l / b)) * a0 ** 2 / (10 / (1 + 3 * (l / b) - 1) + a0 ** 2))
+    n_emb = 1
+    if fd.depth:
+        n_emb = 1 + (0.25 + 0.25 / (l / b)) * (fd.depth / b) ** 0.8
+    return k_v_0 * kz * n_emb
+
+
+def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0):
+    if a0:
+        raise ValueError('dynamic stiffness not implemented')
     v = sl.poissons_ratio
     l = fd.length * 0.5
     b = fd.width * 0.5
@@ -237,17 +262,11 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=0.0, f_contact=1.0):
     return k_v_0 * n_emb
 
 
-def calc_vert_via_pais_1988(sl, fd, a0=0.0):
-    v = sl.poissons_ratio
-    l = fd.length * 0.5
-    b = fd.width * 0.5
-    k_v_0 = sl.g_mod * b / (1 - v) * (3.1 * (l / b) ** 0.75 + 1.6)
-    return k_v_0
-
-
 def get_vert_gazetas_1991(sl, fd, a0):
+    gf.exceptions.deprecation('get_vert_gazetas_1991')
     return calc_vert_via_gazetas_1991(sl, fd, a0)
 
 
 def get_rot_via_gazetas_1991(sl, fd, ip_axis="length", a0=0.0, f_contact=1.0, **kwargs):
+    gf.exceptions.deprecation('get_rot_via_gazetas_1991')
     return calc_rotational_via_gazetas_1991(sl, fd, ip_axis=ip_axis, a0=a0, f_contact=f_contact, **kwargs)

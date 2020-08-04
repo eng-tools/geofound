@@ -116,7 +116,7 @@ def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0,
         else:
             ip_axis = 'length'
 
-    if fd.i_ww >= fd.i_ll:
+    if fd.length >= fd.width:
         len_dominant = True
         l = fd.length * 0.5
         b = fd.width * 0.5

@@ -51,8 +51,11 @@ def interp2d(x, xf, f):
     return s1[:, np.newaxis] * f0 + s0[:, np.newaxis] * f1
 
 
-def interp_twoways(x0, y0, xs, ys, fs):
-    f_interp = interp2d(np.array([y0]), ys, fs)[0]
+def interp_twoways(x0, y0, xs, ys, fs, logy=False):
+    if logy:
+        f_interp = interp2d(np.array([np.log(y0)]), np.log(ys), fs)[0]
+    else:
+        f_interp = interp2d(np.array([y0]), ys, fs)[0]
     return np.interp(x0, xs, f_interp)
 
 
@@ -66,7 +69,7 @@ def get_kz_gazetas_v_lte_0p4(a0, lob):
         [1, 1.124, 1.225, 1.275, 1.252, 1.184, 1.094, 0.9916, 0.8906, 0.8016],
         [1, 1.231, 1.348, 1.356, 1.309, 1.233, 1.143, 1.047, 0.9523, 0.8579],
     ])
-    return interp_twoways(a0, lob, a0s, lobs, kzs)
+    return interp_twoways(a0, lob, a0s, lobs, kzs, logy=True)
 
 
 def get_kz_gazetas_v_gt_0p4(a0, lob):
@@ -77,7 +80,7 @@ def get_kz_gazetas_v_gt_0p4(a0, lob):
         [1, 1.03, 1.043, 0.9886, 0.8232, 0.567, 0.2662, -0.1174, -0.5485, -0.5485],
         [1, 1.227, 1.266, 1.117, 0.805, 0.3359, -0.2942, -0.7138, -0.7138, -0.7138],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, kzs)
+    return interp_twoways(a0, lob, a0s, lobs, kzs, logy=True)
 
 
 def get_ky_gazetas(a0, lob):
@@ -91,7 +94,7 @@ def get_ky_gazetas(a0, lob):
         [1, 1.193, 1.344, 1.47, 1.539, 1.564, 1.572, 1.577, 1.575, 1.573],
         [1, 1.237, 1.485, 1.631, 1.699, 1.723, 1.726, 1.729, 1.728, 1.725],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, kys)
+    return interp_twoways(a0, lob, a0s, lobs, kys, logy=True)
 
 
 def get_cz_gazetas_v_lte_0p4(a0, lob):
@@ -105,7 +108,7 @@ def get_cz_gazetas_v_lte_0p4(a0, lob):
         [1.773, 1.416, 1.252, 1.176, 1.143, 1.121, 1.106, 1.096, 1.092, 1.088],
         [2.003, 1.579, 1.344, 1.235, 1.183, 1.152, 1.132, 1.122, 1.117, 1.115],
     ])
-    return interp_twoways(a0, lob, a0s, lobs, czs)
+    return interp_twoways(a0, lob, a0s, lobs, czs, logy=True)
 
 
 def get_czf_gazetas_v_gt_0p4(a0, lob):
@@ -118,7 +121,7 @@ def get_czf_gazetas_v_gt_0p4(a0, lob):
         [1.12, 1.096, 1.077, 1.062, 1.052, 1.045, 1.04, 1.036, 1.034, 1.036],
         [1.223, 1.158, 1.11, 1.078, 1.062, 1.053, 1.047, 1.046, 1.046, 1.049],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, czfs)
+    return interp_twoways(a0, lob, a0s, lobs, czfs, logy=True)
 
 
 def get_cy_gazetas_v_e_0p3(a0, lob):
@@ -132,7 +135,7 @@ def get_cy_gazetas_v_e_0p3(a0, lob):
         [1.899, 1.537, 1.289, 1.112, 1.029, 0.9787, 0.9361, 0.9051, 0.8951, 0.8945],
         [2.422, 1.787, 1.398, 1.179, 1.064, 0.9984, 0.9547, 0.9207, 0.9022, 0.9151],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, cys)
+    return interp_twoways(a0, lob, a0s, lobs, cys, logy=True)
 
 
 def get_cy_gazetas_v_e_0p5(a0, lob):
@@ -146,7 +149,7 @@ def get_cy_gazetas_v_e_0p5(a0, lob):
         [1.899, 1.537, 1.289, 1.112, 1.029, 0.9787, 0.9361, 0.9051, 0.8951, 0.8945],
         [3.007, 2.148, 1.57, 1.292, 1.15, 1.062, 1.023, 0.9965, 0.9647, 0.9358],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, cys)
+    return interp_twoways(a0, lob, a0s, lobs, cys, logy=True)
 
 
 def get_crx_gazetas(a0, lob):
@@ -159,7 +162,7 @@ def get_crx_gazetas(a0, lob):
         [0.001, 0.1211, 0.2245, 0.3158, 0.3921, 0.4433, 0.4834, 0.523, 0.5611, 0.6017],
         [0.001, 0.1527, 0.2606, 0.3435, 0.4129, 0.47, 0.5168, 0.5536, 0.593, 0.6308],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, crxs)
+    return interp_twoways(a0, lob, a0s, lobs, crxs, logy=True)
 
 
 def get_cry_gazetas(a0, lob):
@@ -173,7 +176,7 @@ def get_cry_gazetas(a0, lob):
         [0.02018, 0.8797, 0.9786, 0.9983, 1, 1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, crys)
+    return interp_twoways(a0, lob, a0s, lobs, crys, logy=True)
 
 
 def get_ct_gazetas(a0, lob):
@@ -187,7 +190,7 @@ def get_ct_gazetas(a0, lob):
         [0.001, 0.5007, 0.853, 0.9474, 0.9834, 1, 1, 1, 1, 1],
         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
         ])
-    return interp_twoways(a0, lob, a0s, lobs, cts)
+    return interp_twoways(a0, lob, a0s, lobs, cts, logy=True)
 
 
 def show_plots():

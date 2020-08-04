@@ -702,6 +702,8 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
         fd.length = length_to_width * fd.width
         if use_depth_to_width:
             fd.depth = depth_to_width * fd.width
+        else:
+            fd.depth = depth
         capacity_method_selector(sl, fd, method)
         q = fd.q_ult
 
@@ -794,7 +796,7 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, **kwargs)
             prev_ub_len = est_len
             est_len = (prev_lb_len + est_len) / 2
     if i == 49:
-        raise ValueError(init_fos, est_len, prev_lb_len, prev_ub_len)
+        raise ValueError(init_fos, curr_fos, est_len, prev_lb_len, prev_ub_len)
     return est_len
 
 

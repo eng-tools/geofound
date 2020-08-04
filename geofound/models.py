@@ -52,7 +52,7 @@ def create_foundation(length, width, depth=0.0, height=0.0):
     :param height: Foundation height
     :return: A Foundation object
     """
-    a_foundation = FoundationRaft()
+    a_foundation = RaftFoundation()
     a_foundation.length = length
     a_foundation.width = width
     a_foundation.depth = depth

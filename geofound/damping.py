@@ -2,8 +2,9 @@ import numpy as np
 from geofound import tables_of_dyn_coefficients as tdc
 
 
-def calc_vert_via_gazetas_1991(sl, fd, a0=None, saturated=False):
-    v_la = 3.4 / (np.pi * (1 - sl.poissons_ratio)) * sl.get_shear_vel(saturated=saturated)
+def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0, saturated=False):
+    v_s = sl.get_shear_vel(saturated=saturated)
+    v_la = 3.4 / (np.pi * (1 - sl.poissons_ratio)) * v_s
     if saturated:
         rho = sl.unit_sat_mass
     else:
@@ -17,10 +18,16 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, saturated=False):
             f_dyn *= czf
     else:
         f_dyn = 1.0
-    return rho * v_la * fd.area * f_dyn
+    if fd.depth:
+        h = min([fd.height, fd.depth])
+        a_w = 2 * h * (fd.width + fd.length) * f_contact
+        c_emb = rho * v_s * a_w
+    else:
+        c_emb = 0.0
+    return rho * v_la * fd.area * f_dyn + c_emb
 
 
-def calc_horz_via_gazetas_1991(sl, fd, a0=None, ip_axis='width', saturated=False):
+def calc_horz_via_gazetas_1991(sl, fd, a0=None, ip_axis='width', f_contact=1.0, saturated=False):
     if saturated:
         rho = sl.unit_sat_mass
     else:
@@ -46,7 +53,21 @@ def calc_horz_via_gazetas_1991(sl, fd, a0=None, ip_axis='width', saturated=False
             f_dyn = 1.0
     else:
         f_dyn = 1.0  # no dynamic effective
-    return rho * sl.get_shear_vel(saturated=saturated) * fd.area * f_dyn
+    if fd.depth:
+        v_s = sl.get_shear_vel(saturated=saturated)
+        v_la = 3.4 / (np.pi * (1 - sl.poissons_ratio)) * v_s
+        l_ip = getattr(fd, ip_axis)
+        if ip_axis == 'width':
+            l_oop = fd.length
+        else:
+            l_oop = fd.width
+        h = min([fd.height, fd.depth])
+        a_wc = 2 * h * l_oop * f_contact
+        a_ws = 2 * h * l_ip * f_contact
+        c_emb = rho * v_s * a_ws + rho * v_la * a_wc
+    else:
+        c_emb = 0.0
+    return rho * sl.get_shear_vel(saturated=saturated) * fd.area * f_dyn + c_emb
 
 
 def calc_rot_via_gazetas_1991(sl, fd, a0=None, ip_axis='width', saturated=False):
@@ -74,7 +95,24 @@ def calc_rot_via_gazetas_1991(sl, fd, a0=None, ip_axis='width', saturated=False)
     if xx_axis:
         c_static = rho * v_la * i_bx
         f_dyn = tdc.get_crx_gazetas(a0, l / b)
+        c_emb = 0.0
     else:
         c_static = rho * v_la * i_by
         f_dyn = tdc.get_cry_gazetas(a0, l / b)
-    return c_static * f_dyn
+        c_emb = 0.0  # TODO: this is wrong - but formula is very hard to interpret
+    return c_static * f_dyn + c_emb
+
+
+def calc_tors_via_gazetas_1991(sl, fd, a0=None, saturated=False):
+    j_t = fd.i_ll + fd.i_ww
+    if saturated:
+        rho = sl.unit_sat_mass
+    else:
+        rho = sl.unit_dry_mass
+    l = max([fd.length, fd.width]) / 2
+    b = max([fd.length, fd.width]) / 2
+    if a0:
+        f_dyn = tdc.get_ct_gazetas(a0, l / b)
+    else:
+        f_dyn = 1.0
+    return rho * sl.get_shear_vel(saturated=saturated) * j_t * f_dyn

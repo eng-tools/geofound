@@ -1075,8 +1075,8 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, verbose=0):
             fd.q_ult = q_t
 
         else:
-            vert_eff_stress_interface = sp.vertical_effective_stress(h0)
-            vert_eff_stress_lowest = sp.vertical_effective_stress(fd_width+fd.depth)
+            vert_eff_stress_interface = sp.get_v_eff_stress_at_depth(h0)
+            vert_eff_stress_lowest = sp.get_v_eff_stress_at_depth(fd_width+fd.depth)
             average_eff_stress = (vert_eff_stress_interface + vert_eff_stress_lowest) / 2
 
             c_2_eff = sl_1.cohesion + average_eff_stress * np.tan(np.radians(sl_1.phi))

@@ -47,5 +47,5 @@ def test_interp2d_at_edge():
     assert f_interp[1][0] == 10.
 
 
-def test_get_kz_gazetas_v_lt_0p4():
-    assert np.isclose(tdsc.get_kz_gazetas_v_lt_0p4(1, 1.5), 0.93756)
+def test_get_kz_gazetas_v_lte_0p4():
+    assert np.isclose(tdsc.get_kz_gazetas_v_lte_0p4(1, 1.5), 0.91724984566)

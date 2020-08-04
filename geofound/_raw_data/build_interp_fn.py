@@ -97,6 +97,45 @@ def create_czf_gazetas():
     gen_builder(fname, names, prefix)
 
 
+def create_cy_gazetas_e_0p3():
+    fname = 'cy_gazetas_v_e_0p3'
+    names = ['1', '2', '4', '6', '10', '1000']
+    prefix = 'cy'
+    gen_builder(fname, names, prefix)
+
+
+def create_cy_gazetas_e_0p5():
+    fname = 'cy_gazetas_v_e_0p5'
+    names = ['1', '2', '4', '6', '10', '1000']
+    prefix = 'cy'
+    gen_builder(fname, names, prefix)
+
+
+def create_crx_gazetas():
+    fname = 'crx_gazetas'
+    names = ['1', '2', '4', '6', '10']
+    prefix = 'crx'
+    gen_builder(fname, names, prefix)
+
+
+def create_cry_gazetas():
+    fname = 'cry_gazetas'
+    names = ['1', '2', '4', '6', '10', '1000']
+    prefix = 'cry'
+    gen_builder(fname, names, prefix)
+
+
+def create_ct_gazetas():
+    fname = 'ct_gazetas'
+    names = ['1', '2', '3', '4', '6', '1000']
+    prefix = 'ct'
+    gen_builder(fname, names, prefix)
+
+
+
 if __name__ == '__main__':
     # create_kz_gazetas_v_gt_0p4()
-    create_czf_gazetas()
+    # create_kz_gazetas_v_gt_0p4()
+    create_crx_gazetas()
+    create_cry_gazetas()
+    create_ct_gazetas()

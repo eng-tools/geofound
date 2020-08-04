@@ -1,5 +1,6 @@
 import numpy as np
-from geofound import tables_of_dyn_stiffness_coefficients as tdsc
+from geofound import tables_of_dyn_coefficients as tdsc
+
 
 def test_interp2d():
     x = np.linspace(1, 10, 3)

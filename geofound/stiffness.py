@@ -4,6 +4,13 @@ import warnings
 from geofound import tables_of_dyn_coefficients as tdc
 
 
+_pi = 3.14159265359
+
+
+def calc_a0(period, l_ip, shear_vel):
+    return (_pi / period) * l_ip / shear_vel
+
+
 def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0, **kwargs):
     """
     Rotation stiffness of foundation from Gazetas (1991) and Mylonakis et al. (2006)
@@ -59,8 +66,11 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
         k_static_surf = (sl.g_mod / (1 - v) * i_bx ** 0.75 * (l / b) ** 0.25 * (2.4 + 0.5 * (b / l)))
         if fd.depth > 0.0:
             dw = min(fd.height, fd.depth) * f_contact
-            # note: in ATC-40 the 1.26 factor is 2.52
-            n_emb = 1 + 1.26 * (dw / b) * (1. + (dw / b) * (dw / fd.depth) ** -0.2 * (b / l) ** 0.5)
+            if dw == 0:
+                n_emb = 1
+            else:
+                # note: in ATC-40 the 1.26 factor is 2.52
+                n_emb = 1 + 1.26 * (dw / b) * (1. + (dw / b) * (dw / fd.depth) ** -0.2 * (b / l) ** 0.5)
     else:  # yy_axis (rotation about y-axis)
         if v < 0.45:
             f_dyn = 1 - 0.3 * a0  # Note the f_dyn_emb = 1.0
@@ -69,13 +79,16 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
         k_static_surf = (sl.g_mod / (1 - v) * i_by ** 0.75 * (3 * (l / b) ** 0.15))
         if fd.depth > 0.0:
             dw = min(fd.height, fd.depth) * f_contact
-            # Note that the original Gazetas (1991) paper has (dw / L) ** 1.9 * (dw / D) ** -0.6, also in ATC-40
-            # From Gazetas (1983) it is explained that strip has much less embedment effect that circular, since less sidewall
-            n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / l) ** 1.9 * (dw / fd.depth) ** -0.6)
-            if fd.depth / b > 2. / 3:
-                warnings.warn('D/B should be less than or equal to 2/3 - See Gazetas (1983)', EquationWarning, stacklevel=2)
-            # whereas Mylonakis has this form:
-            # n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
+            if dw == 0.0:
+                n_emb = 1
+            else:
+                # Note that the original Gazetas (1991) paper has (dw / L) ** 1.9 * (dw / D) ** -0.6, also in ATC-40
+                # From Gazetas (1983) it is explained that strip has much less embedment effect that circular, since less sidewall
+                n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / l) ** 1.9 * (dw / fd.depth) ** -0.6)
+                if fd.depth / b > 2. / 3:
+                    warnings.warn('D/B should be less than or equal to 2/3 - See Gazetas (1983)', EquationWarning, stacklevel=2)
+                # whereas Mylonakis has this form:
+                # n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
     return k_static_surf * f_dyn * n_emb
 
 
@@ -128,7 +141,6 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1
     """
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
-    _pi = 3.14159265359
     k_strip = _pi * sl.g_mod * b ** 2 / (2 * (1 - sl.poissons_ratio))
     f_dyn = 1 - 0.2 * a0
     if fd.depth > 0.0:
@@ -289,19 +301,22 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0):
         a_w = 2 * h * (fd.width + fd.length) * f_contact
         chi = b / l
         n_emb = (1 + fd.depth / (21 * b) * (1 + 1.3 * chi)) * (1 + 0.2 * (a_w / (4 * b * l)) ** (2. / 3))
-        if v <= 0.4:
-            f_dyn_full_emb = 1 - 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
-            f_dyn_trench = 1 + 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
-        else:
-
-            if l / b < 2.5:
+        if a0:
+            if v <= 0.4:
                 f_dyn_full_emb = 1 - 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
+                f_dyn_trench = 1 + 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
             else:
-                f_dyn_full_emb = 1 - 0.35 * (fd.depth / b) ** 0.5 * a0 ** 3.5
-            f_dyn_trench = f_dyn_surf  # Assume the same as the surface - this is currently not provided
-            f_dyn_surf = 1.
-        # interpolate between
-        f_dyn_emb = f_dyn_trench + (f_dyn_full_emb - f_dyn_trench) * ((h * f_contact) / fd.depth)
+
+                if l / b < 2.5:
+                    f_dyn_full_emb = 1 - 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
+                else:
+                    f_dyn_full_emb = 1 - 0.35 * (fd.depth / b) ** 0.5 * a0 ** 3.5
+                f_dyn_trench = f_dyn_surf  # Assume the same as the surface - this is currently not provided
+                f_dyn_surf = 1.
+            # interpolate between
+            f_dyn_emb = f_dyn_trench + (f_dyn_full_emb - f_dyn_trench) * ((h * f_contact) / fd.depth)
+        else:
+            f_dyn_emb = 1
     else:
         n_emb = 1.0
         f_dyn_emb = 1.0
@@ -332,7 +347,7 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
     v = sl.poissons_ratio
-    k_strip = 0.73 * sl.g_mod * b / (1 - v)
+    k_strip = 0.73 * sl.g_mod / (1 - v)
     if a0:
         lob = 1000
         if sl.poissons_ratio <= 0.4:
@@ -478,4 +493,5 @@ def show_example():
 
 
 if __name__ == '__main__':
-    show_example()
+    # show_example()
+    print(calc_a0(0.6, 1.5, 150.))

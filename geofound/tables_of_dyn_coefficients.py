@@ -196,12 +196,14 @@ def get_ct_gazetas(a0, lob):
 def show_plots():
     import matplotlib.pyplot as plt
     a0s = np.linspace(0, 2, 10)
-    lobs = [1, 4, 1000]
-    for lob in lobs:
+    lobs = [0.5, 1, 4, 1000]
+    lss = ['-', '--', ':', '-.']
+    for i, lob in enumerate(lobs):
         f = []
         for a0 in a0s:
-            f.append(get_kz_gazetas_v_gt_0p4(a0, lob))
-        plt.plot(a0s, f, label=str(lob))
+            # f.append(get_kz_gazetas_v_gt_0p4(a0, lob))
+            f.append(get_crx_gazetas(a0, lob))
+        plt.plot(a0s, f, label=str(lob), ls=lss[i])
     plt.legend()
     plt.show()
 

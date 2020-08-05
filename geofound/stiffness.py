@@ -64,8 +64,13 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
     if xx_axis:
         f_dyn = 1 - 0.2 * a0
         k_static_surf = (sl.g_mod / (1 - v) * i_bx ** 0.75 * (l / b) ** 0.25 * (2.4 + 0.5 * (b / l)))
-        if fd.depth > 0.0:
-            dw = min(fd.height, fd.depth) * f_contact
+        if fd.depth is not None and fd.depth != 0.0:
+            if fd.depth < 0.0:
+                raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+            if f_contact == 0.0:
+                dw = 0.0
+            else:
+                dw = min(fd.height, fd.depth) * f_contact
             if dw == 0:
                 n_emb = 1
             else:
@@ -77,8 +82,13 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
         else:
             f_dyn = 1 - 0.25 * a0 * (l / b) ** 0.3
         k_static_surf = (sl.g_mod / (1 - v) * i_by ** 0.75 * (3 * (l / b) ** 0.15))
-        if fd.depth > 0.0:
-            dw = min(fd.height, fd.depth) * f_contact
+        if fd.depth is not None and fd.depth != 0.0:
+            if fd.depth < 0.0:
+                raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+            if f_contact == 0.0:
+                dw = 0.0
+            else:
+                dw = min(fd.height, fd.depth) * f_contact
             if dw == 0.0:
                 n_emb = 1
             else:
@@ -143,8 +153,13 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1
     b = l_ip / 2
     k_strip = _pi * sl.g_mod * b ** 2 / (2 * (1 - sl.poissons_ratio))
     f_dyn = 1 - 0.2 * a0
-    if fd.depth > 0.0:
-        dw = min(fd.height, fd.depth) * f_contact
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+        if f_contact == 0.0:
+            dw = 0.0
+        else:
+            dw = min(fd.height, fd.depth) * f_contact
         # note: in ATC-40 the 1.26 factor is 2.52
         n_emb = 1 + 1.26 * (dw / b)
     else:
@@ -258,9 +273,13 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
         f_dyn = tdc.get_ky_gazetas(a0, 1000)
     else:
         f_dyn = 1.0
-    if fd.depth > 0.0:
-        dw = min(fd.height, fd.depth) * f_contact
-        # note: in ATC-40 the 1.26 factor is 2.52
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+        if f_contact == 0.0:
+            dw = 0.0
+        else:
+            dw = min(fd.height, fd.depth) * f_contact
         n_emb = 1 + 1.26 * (dw / b)
     else:
         n_emb = 1.
@@ -296,9 +315,14 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0):
             f_dyn_surf = tdc.get_kz_gazetas_v_gt_0p4(a0, l / b)
     else:
         f_dyn_surf = 1.
-    if fd.depth:
-        h = min([fd.height, fd.depth])
-        a_w = 2 * h * (fd.width + fd.length) * f_contact
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+        if f_contact == 0.0:
+            dw = 0.0
+        else:
+            dw = min([fd.height, fd.depth]) * f_contact
+        a_w = 2 * dw * (fd.width + fd.length)
         chi = b / l
         n_emb = (1 + fd.depth / (21 * b) * (1 + 1.3 * chi)) * (1 + 0.2 * (a_w / (4 * b * l)) ** (2. / 3))
         if a0:
@@ -356,9 +380,14 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
             f_dyn_surf = tdc.get_kz_gazetas_v_gt_0p4(a0, lob)
     else:
         f_dyn_surf = 1.
-    if fd.depth:
-        h = min([fd.height, fd.depth])
-        a_w = 2 * fd.height * fd.width * f_contact
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+        if f_contact == 0.0:
+            dw = 0.0
+        else:
+            dw = min([fd.height, fd.depth]) * f_contact
+        a_w = 2 * dw * fd.width
         n_emb = (1 + fd.depth / (21 * b)) * (1 + 0.2 * (a_w / (2 * b)) ** (2. / 3))
         if v <= 0.4:
             f_dyn_full_emb = 1 - 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
@@ -368,7 +397,7 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
             f_dyn_trench = f_dyn_surf  # Assume the same as the surface - this is currently not provided
             f_dyn_surf = 1.
         # interpolate between
-        f_dyn_emb = f_dyn_trench + (f_dyn_full_emb - f_dyn_trench) * ((h * f_contact) / fd.depth)
+        f_dyn_emb = f_dyn_trench + (f_dyn_full_emb - f_dyn_trench) * (dw / fd.depth)
     else:
         n_emb = 1
         f_dyn_emb = 1.0
@@ -423,12 +452,16 @@ def calc_rot_via_pais_1988(sl, fd, ip_axis='width', a0=0.0, **kwargs):
         k_rx = 1 - ((0.55 + 0.01 * (l / b - 1) ** 0.5) * a0 ** 2 / ((2.4 - 0.4 / (l / b) ** 3) + a0 ** 2))
         # x-axis
         k_f_0 = (sl.g_mod * b ** 3 / (1 - v) * (3.2 * (l / b) + 0.8)) * k_rx
-        if fd.depth > 0.0:
+        if fd.depth is not None and fd.depth != 0.0:
+            if fd.depth < 0.0:
+                raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
             n_emb = 1.0 + fd.depth / b + (1.6 / (0.35 + (l / b)) * (fd.depth / b) ** 2)
     else:
         k_ry = 1 - (0.55 * a0 ** 2 / ((0.6 + 1.4 / (l / b) ** 3) + a0 ** 2))
         k_f_0 = (sl.g_mod * b ** 3 / (1 - v) * (3.73 * (l / b) ** 2.4 + 0.27)) * k_ry
-        if fd.depth > 0.0:
+        if fd.depth is not None and fd.depth != 0.0:
+            if fd.depth < 0.0:
+                raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
             n_emb = 1.0 + fd.depth / b + (1.6 / (0.35 + (l / b) ** 4) * (fd.depth / b) ** 2)
 
     return k_f_0 * n_emb
@@ -454,7 +487,9 @@ def calc_vert_via_pais_1988(sl, fd, a0=0):
     k_v_0 = sl.g_mod * b / (1 - v) * (3.1 * (l / b) ** 0.75 + 1.6)
     kz = 1 - ((0.4 + 0.2 / (l / b)) * a0 ** 2 / (10 / (1 + 3 * (l / b) - 1) + a0 ** 2))
     n_emb = 1
-    if fd.depth:
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
         n_emb = 1 + (0.25 + 0.25 / (l / b)) * (fd.depth / b) ** 0.8
     return k_v_0 * kz * n_emb
 

@@ -19,7 +19,9 @@ def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, saturated=False):
         czf = tdc.get_czf_gazetas_v_gt_0p4(a0, l / b)
         f_dyn *= czf
 
-    if fd.depth:
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
         h = min([fd.height, fd.depth])
         a_w = 2 * h * (fd.width + fd.length) * f_contact
         c_emb = rho * v_s * a_w
@@ -45,7 +47,9 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0,
             f_dyn *= czf
     else:
         f_dyn = 1.0
-    if fd.depth:
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
         h = min([fd.height, fd.depth])
         a_w = 2 * h * (l_ip + l_oop) * f_contact
         c_emb = rho * v_s * a_w
@@ -77,7 +81,9 @@ def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0, satur
         f_dyn = np.interp(sl.poissons_ratio, [0.3, 0.5], [f_dyn_v3, f_dyn_v5])
     else:
         f_dyn = 1.0  # no dynamic effect
-    if fd.depth:
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
         v_s = sl.get_shear_vel(saturated=saturated)
         v_la = 3.4 / (_pi * (1 - sl.poissons_ratio)) * v_s
         l_ip = getattr(fd, ip_axis)
@@ -105,7 +111,9 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0,
     f_dyn = np.interp(sl.poissons_ratio, [0.3, 0.5], [f_dyn_v3, f_dyn_v5])
     l_oop = 1.0
     l_ip = getattr(fd, ip_axis)
-    if fd.depth:
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
         v_s = sl.get_shear_vel(saturated=saturated)
         v_la = 3.4 / (_pi * (1 - sl.poissons_ratio)) * v_s
         h = min([fd.height, fd.depth])

@@ -95,8 +95,8 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
                 # Note that the original Gazetas (1991) paper has (dw / L) ** 1.9 * (dw / D) ** -0.6, also in ATC-40
                 # From Gazetas (1983) it is explained that strip has much less embedment effect that circular, since less sidewall
                 n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / l) ** 1.9 * (dw / fd.depth) ** -0.6)
-                if fd.depth / b > 2. / 3:
-                    warnings.warn('D/B should be less than or equal to 2/3 - See Gazetas (1983)', EquationWarning, stacklevel=2)
+                # if fd.depth / b > 2. / 3:
+                #     warnings.warn('D/B should be less than or equal to 2/3 - See Gazetas (1983) Table 9', EquationWarning, stacklevel=2)
                 # whereas Mylonakis has this form:
                 # n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
     return k_static_surf * f_dyn * n_emb
@@ -229,7 +229,7 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_con
 
 
 def calc_shear_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0):
-    calc_horz_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, f_contact=f_contact)
+    return calc_horz_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, f_contact=f_contact)
 
 
 def shear_stiffness(f_length, f_breadth, soil_g, soil_v):

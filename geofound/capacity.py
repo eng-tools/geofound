@@ -776,7 +776,7 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, **kwargs)
     new_fd.length = fd.length
     prev_ub_len = fd.length
     q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1))
-    init_fos = (q_ult * fd.area) / vertical_load
+    init_fos = (q_ult * fd.area) / vertical_load  # TODO: should this have overburden pressure?
     if init_fos < 1.0:
         raise ValueError
     prev_lb_len = 0  # should be FOS lower than 1.

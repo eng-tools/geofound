@@ -598,22 +598,33 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
-    v_l = kwargs.get("loc_v_l", fd.length / 2)  # given in fd coordinates
-    v_b = kwargs.get("loc_v_b", fd.width / 2)
+
     h_eff_b = kwargs.get("h_eff_b", 0)
     h_eff_l = kwargs.get("h_eff_l", 0)
+    ip_axis_2d = kwargs.get('ip_axis_2d', None)
     # TODO: implement phi as fn of sigma_m
+    temp_fd_length = fd.length
+    temp_fd_width = fd.width
+    if ip_axis_2d is not None:
+        if ip_axis_2d == 'width':
+            temp_fd_length = temp_fd_width * 100
+        if ip_axis_2d == 'length':
+            temp_fd_width = temp_fd_length * 100
+        else:
+            raise ValueError("ip_axis_2d must be either 'width' or 'length'")
+    v_l = kwargs.get("loc_v_l", temp_fd_length / 2)  # given in fd coordinates
+    v_b = kwargs.get("loc_v_b", temp_fd_width / 2)
 
-    if fd.length > fd.width:  # TODO: deal with plane strain
-        fd_length = fd.length
-        fd_width = fd.width
+    if temp_fd_length > temp_fd_width:  # TODO: deal with plane strain
+        fd_length = temp_fd_length
+        fd_width = temp_fd_width
         loc_v_l = v_l
         loc_v_b = v_b
         loc_h_b = h_b
         loc_h_l = h_l
     else:
-        fd_length = fd.width
-        fd_width = fd.length
+        fd_length = temp_fd_width
+        fd_width = temp_fd_length
         loc_v_l = v_b
         loc_v_b = v_l
         loc_h_b = h_l

@@ -33,7 +33,8 @@ setup(name='geofound',
           'test': ['pytest'],
       },
       python_requires='>=3',
-      package_data={},
+      package_data={'': ['LICENSE']},
+      include_package_data=True,
       zip_safe=False)
 
 

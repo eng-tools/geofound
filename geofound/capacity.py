@@ -333,7 +333,7 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
                     fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
 
-def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
+def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, axis_inf=None, verbose=0, **kwargs):
     """
     Calculates the foundation capacity according Meyerhoff (1963)
     http://www.engs-comp.com/meyerhof/index.shtml
@@ -350,13 +350,21 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
-
-    if fd.length > fd.width:  # TODO: deal with plane strain
-        fd_length = fd.length
-        fd_width = fd.width
-    else:
-        fd_length = fd.width
+    if axis_inf is None:
+        if fd.length > fd.width:
+            fd_length = fd.length
+            fd_width = fd.width
+        else:
+            fd_length = fd.width
+            fd_width = fd.length
+    elif axis_inf == 'width':
         fd_width = fd.length
+        fd_length = None
+    elif axis_inf == 'length':
+        fd_width = fd.width
+        fd_length = None
+    else:
+        raise ValueError(f'axis_inf must be either: None, "width", or "length" not {axis_inf}')
 
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 *
                     np.exp(np.pi * np.tan(sl.phi_r)))
@@ -373,11 +381,15 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, verbo
 
     kp = (np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2
     # shape factors
-    s_c = 1 + 0.2 * kp * fd_width / fd_length
-    if sl.phi > 10:
-        s_q = 1.0 + 0.1 * kp * fd_width / fd_length
+    if fd_length is None:
+        s_c = 1
+        s_q = 1
     else:
-        s_q = 1.0
+        s_c = 1 + 0.2 * kp * fd_width / fd_length
+        if sl.phi > 10:
+            s_q = 1.0 + 0.1 * kp * fd_width / fd_length
+        else:
+            s_q = 1.0
     s_g = s_q
 
     # depth factors
@@ -688,7 +700,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     return fd.q_ult
 
 
-def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, **kwargs):
+def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, verbose=0, unit_weight=0, **kwargs):
     """
     Determine the size of a footing given an aspect ratio and a load
 
@@ -719,7 +731,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
         q = fd.q_ult
 
         bearing_capacity = q * fd.length * fd.width
-        fs_actual = bearing_capacity / vertical_load
+        fs_actual = bearing_capacity / (vertical_load + unit_weight * fd.area * fd.depth)
 
         if fs_actual < fos:
             # Need to increase foundation sizes
@@ -743,7 +755,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
 
         capacity = q * fd.length * fd.width
 
-        fs_array.append(capacity / vertical_load)
+        fs_array.append(capacity / (vertical_load + unit_weight * fd.area * fd.depth))
 
         fd.width = fd.width - 0.5 / 10
 

@@ -1,6 +1,7 @@
 import geofound as gf
 from geofound.exceptions import EquationWarning
 import warnings
+import numpy as np
 from geofound import tables_of_dyn_coefficients as tdc
 
 
@@ -123,7 +124,7 @@ def rotational_stiffness(sl, fd, ip_axis="width", axis=None, a0=0.0, method='gaz
         Rotational stiffness of the foundation
     """
     if method == 'gazetas_1991':
-        return calc_rotational_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, **kwargs)
+        return calc_rot_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, **kwargs)
     else:
         return calc_rot_via_pais_1988(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, **kwargs)
 
@@ -326,6 +327,7 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0):
         chi = b / l
         n_emb = (1 + fd.depth / (21 * b) * (1 + 1.3 * chi)) * (1 + 0.2 * (a_w / (4 * b * l)) ** (2. / 3))
         if a0:
+            h = min([fd.height, fd.depth])
             if v <= 0.4:
                 f_dyn_full_emb = 1 - 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
                 f_dyn_trench = 1 + 0.09 * (fd.depth / b) ** (3. / 4) * a0 ** 2
@@ -526,6 +528,24 @@ def show_example():
     k_strip = calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis='width')
     print(k_strip / k_horz)
 
+
+def calc_norm_stiff_of_rect_via_gazetas_1991(loop_o_lip):
+    """lob=length in-plane divided by length out-of-plane"""
+    length = 1
+    width = loop_o_lip
+    depth = 0.0
+    sl = gf.create_soil()
+    sl.g_mod = 30e6
+    sl.poissons_ratio = 0.3
+    fd = gf.create_foundation(length, width, depth)
+    ip_axis = 'length'
+    k_rot = calc_rot_via_gazetas_1991(sl, fd, ip_axis)
+    k_vert = calc_vert_via_gazetas_1991(sl, fd)
+    n_rat = k_rot / k_vert / fd.length ** 2
+    return n_rat
+    # return np.where(loop_o_lip < 1,
+    #                 2.48 / loop_o_lip * (1 + 5 * loop_o_lip) / (0.73 + 1.55 / loop_o_lip ** 0.75),
+    #                 14.88 * loop_o_lip ** 0.6 / (0.73 + 1.55 * loop_o_lip ** 0.75))
 
 if __name__ == '__main__':
     # show_example()

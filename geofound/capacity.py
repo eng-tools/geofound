@@ -592,10 +592,12 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
 
 def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
     """
-    calculates the capacity according to
-     THe Engineering of Foundations textbook by Salgado
+    Calculates the capacity according to
+     The Engineering of Foundations textbook by Salgado
 
      ISBN: 0072500581
+
+     The method combines load factors from Bolton (1979) and shape factors from Brinch-Hansen (1970)
 
     :param sl: Soil object
     :param fd: Foundation object
@@ -620,10 +622,10 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     if ip_axis_2d is not None:
         if ip_axis_2d == 'width':
             temp_fd_length = temp_fd_width * 100
-        if ip_axis_2d == 'length':
+        elif ip_axis_2d == 'length':
             temp_fd_width = temp_fd_length * 100
         else:
-            raise ValueError("ip_axis_2d must be either 'width' or 'length'")
+            raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
     v_l = kwargs.get("loc_v_l", temp_fd_length / 2)  # given in fd coordinates
     v_b = kwargs.get("loc_v_b", temp_fd_width / 2)
 
@@ -662,7 +664,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
         fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
 
     # shape factors:
-    s_q = 1 + (width_eff / length_eff) * np.tan(sl.phi_r)
+    s_q = 1 + (width_eff / length_eff) * np.sin(sl.phi_r)
     s_g = max(1 - 0.4 * width_eff / length_eff, 0.6)
     s_c = 1.0
 
@@ -779,7 +781,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     return fd
 
 
-def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, **kwargs):
+def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, axis_inf=None, **kwargs):
     """
     Determine the size of a footing given an aspect ratio and a load
 
@@ -798,8 +800,12 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, **kwargs)
     new_fd.depth = fd.depth
     new_fd.length = fd.length
     prev_ub_len = fd.length
-    q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1))
-    init_fos = (q_ult * fd.area) / vertical_load  # TODO: should this have overburden pressure?
+    q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), axis_inf=axis_inf)
+    if axis_inf is None:
+        area = fd.area
+    else:
+        area = getattr(fd, fd.ip_axis)
+    init_fos = (q_ult * area) / vertical_load  # TODO: should this have overburden pressure?
     if init_fos < 1.0:
         raise ValueError
     prev_lb_len = 0  # should be FOS lower than 1.
@@ -808,8 +814,12 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, **kwargs)
     prev_q = q_ult
     for i in range(50):
         setattr(new_fd, ip_axis, est_len)
-        q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1))
-        curr_fos = (q * new_fd.area) / vertical_load
+        q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), axis_inf=axis_inf)
+        if axis_inf is None:
+            area = fd.area
+        else:
+            area = getattr(fd, fd.ip_axis)
+        curr_fos = (q * area) / vertical_load
         if np.isclose(curr_fos, 1.0, rtol=0.01):
             break
         elif curr_fos < 1:

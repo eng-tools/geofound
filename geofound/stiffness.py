@@ -165,7 +165,11 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1
         n_emb = 1 + 1.26 * (dw / b)
     else:
         n_emb = 1.
-    return k_strip * n_emb * f_dyn
+    if h_rigid:
+        n_rigid = 1 + 0.2 * b / h_rigid
+    else:
+        n_rigid = 1
+    return k_strip * n_emb * f_dyn * n_rigid
 
 
 def calc_horz_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0):
@@ -284,10 +288,14 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
         n_emb = 1 + 1.26 * (dw / b)
     else:
         n_emb = 1.
+    if h_rigid:
+        n_rigid = 1 + 2.0 * b / h_rigid
+    else:
+        n_rigid = 1
     return k_strip * n_emb * f_dyn * n_rigid
 
 
-def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0):
+def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0, h_rigid=None):
     """
     Vertical stiffness of foundation
 
@@ -346,8 +354,12 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0):
     else:
         n_emb = 1.0
         f_dyn_emb = 1.0
+    if h_rigid:
+        n_rigid = 1 + (b / h_rigid) / (0.5 + b / l)
+    else:
+        n_rigid = 1
 
-    return k_v_0 * n_emb * f_dyn_surf * f_dyn_emb
+    return k_v_0 * n_emb * f_dyn_surf * f_dyn_emb * n_rigid
 
 
 def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1.0, h_rigid=None, **kwargs):
@@ -505,7 +517,7 @@ def get_vert_gazetas_1991(sl, fd, a0):
 
 def get_rot_via_gazetas_1991(sl, fd, ip_axis="length", a0=0.0, f_contact=1.0, **kwargs):
     gf.exceptions.deprecation('get_rot_via_gazetas_1991')
-    return calc_rotational_via_gazetas_1991(sl, fd, ip_axis=ip_axis, a0=a0, f_contact=f_contact, **kwargs)
+    return calc_rot_via_gazetas_1991(sl, fd, ip_axis=ip_axis, a0=a0, f_contact=f_contact, **kwargs)
 
 
 def show_example():

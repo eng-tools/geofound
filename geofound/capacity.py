@@ -816,9 +816,9 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, axis_inf=
         setattr(new_fd, ip_axis, est_len)
         q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), axis_inf=axis_inf)
         if axis_inf is None:
-            area = fd.area
+            area = new_fd.area
         else:
-            area = getattr(fd, fd.ip_axis)
+            area = getattr(new_fd, fd.ip_axis)
         curr_fos = (q * area) / vertical_load
         if np.isclose(curr_fos, 1.0, rtol=0.01):
             break

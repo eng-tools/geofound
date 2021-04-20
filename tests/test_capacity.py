@@ -281,10 +281,12 @@ def test_calc_crit_length():
     unit_dry_weight = 18.0
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
-    vload = 3000.0
+    # vload = 3000.0
+    q_ult = geofound.capacity_vesic_1975(sl, fd)
+    vload = 0.5 * q_ult * fd.area
     crit_len = geofound.capacity.calc_crit_span(sl, fd, vload, ip_axis='length')
 
-    assert np.isclose(crit_len, 3.149, rtol=0.001), crit_len
+    assert np.isclose(crit_len, 2.765625, rtol=0.001), crit_len
 
 
 def test_very_short_foundation_w_vesics():
@@ -585,6 +587,6 @@ def load_soil_sample_data2(sl1):
 
 
 if __name__ == '__main__':
-    test_very_short_foundation_w_vesics()
+    test_calc_crit_length()
     # test_meyerhof_and_hanna_capacity_sand_over_sand_gwl()
     # test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand()

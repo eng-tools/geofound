@@ -313,8 +313,8 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0, h_rigid=None):
 
     """
     v = sl.poissons_ratio
-    l = fd.length * 0.5
-    b = fd.width * 0.5
+    l = max([fd.length * 0.5, fd.width * 0.5])
+    b = min([fd.length * 0.5, fd.width * 0.5])
     k_v_0 = 2 * sl.g_mod * l / (1 - v) * (0.73 + 1.54 * (b / l) ** 0.75)
 
     if a0:

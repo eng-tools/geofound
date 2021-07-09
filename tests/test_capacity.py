@@ -530,6 +530,17 @@ def test_capacity_sp_meyerhof_and_hanna_1978():
     assert np.isclose(expected, fd.q_ult, rtol=0.01), (expected / 1000, fd.q_ult / 1000)
 
 
+def test_calc_m_eff_via_loukidis_and_salgado_2006():
+    # pg 451
+    fd = models.RaftFoundation()
+    fd.width = 2
+    fd.length = 3
+    fd.depth = 0.0
+    sl = models.Soil(unit_dry_weight=17.1e3)
+    m_eff_expected = 742.0  # kPa
+    m_eff = geofound.calc_m_eff_via_loukidis_and_salgado_2006(sl, fd, p_atm=100.0e3) / 1e3
+    assert np.isclose(m_eff, m_eff_expected, rtol=0.01), m_eff
+
 # def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand_vs_limitstategeo():
 # # STRONG CLAY OVER WEAK SAND
 # length = 1000000.0  # actually a strip in

@@ -6,7 +6,78 @@ from geofound import models
 import sfsimodels as sm
 
 
-def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs):
+def calc_m_eff_via_loukidis_and_salgado_2006(sl, fd, p_atm=101.0e3, ip_axis_2d=None, gwl=1e6):
+    if ip_axis_2d is None:
+        if fd.length > fd.width:
+            fd_length = fd.length
+            fd_width = fd.width
+        else:
+            fd_length = fd.width
+            fd_width = fd.length
+        b_o_l = fd_width / fd_length
+    elif ip_axis_2d == 'length':
+        fd_width = fd.length
+        b_o_l = 1
+    elif ip_axis_2d == 'width':
+        fd_width = fd.width
+        b_o_l = 1
+    else:
+        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
+    assert 0.01 < sl.unit_weight / p_atm < 10, (sl.unit_weight, p_atm)
+    if gwl == 0:
+        unit_weight = sl.unit_bouy_weight
+    elif gwl >= fd.depth + fd_width:
+        unit_weight = sl.unit_dry_weight
+
+    elif gwl > 0 and gwl < fd.depth:
+        unit_weight = sl.unit_bouy_weight
+
+    elif gwl >= fd.depth and gwl <= fd.depth + fd_width:
+        average_unit_bouy_weight = sl.unit_bouy_weight + (
+            ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+        unit_weight = average_unit_bouy_weight
+
+    sigma_meff = 20 * p_atm * (unit_weight * fd_width / p_atm) ** 0.7 * (1 - 0.32 * b_o_l)
+    return sigma_meff
+
+
+def calc_m_eff_via_debeer_1965(sl, fd, q_ult, gwl=1e6):
+    if gwl == 0:
+        q_d = sl.unit_eff_weight * fd.depth
+
+    elif gwl > 0 and gwl < fd.depth:
+        q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
+
+    elif gwl >= fd.depth and gwl <= fd.depth + fd_width:
+        sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
+            ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+        q_d = sl.unit_dry_weight * fd.depth
+    sigma_meff = 1. / ((1 + np.tan(sl.phi_r) ** 2) * (1 + np.sin(sl.phi_r))) * (q_ult + 3 * q_d) / 4
+    return sigma_meff
+
+
+def calc_m_eff_via_perkins_and_madson_2000(sl, fd, q_ult, q_demand, ip_axis_2d=None):
+    if ip_axis_2d is None:
+        if fd.length > fd.width:
+            fd_length = fd.length
+            fd_width = fd.width
+        else:
+            fd_length = fd.width
+            fd_width = fd.length
+        l_o_b = fd_length / fd_width
+    elif ip_axis_2d == 'length':
+        fd_width = fd.length
+        l_o_b = 10  # unknown?
+    elif ip_axis_2d == 'width':
+        fd_width = fd.width
+        l_o_b = 10
+    else:
+        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
+    sigma_meff = max(1. / 6 * (0.52 - 0.04 * l_o_b), q_demand / 25)
+
+
+
+def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0, gwl=1e6, **kwargs):
     """
     Calculates the foundation capacity according Vesics(1975)
     #Gunaratne, Manjriker. 2006. "Spread Footings: Analysis and Design."
@@ -27,13 +98,27 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
-    if fd.length > fd.width:  # TODO: deal with plane strain
-        fd_length = fd.length
-        fd_width = fd.width
-    else:
-        fd_length = fd.width
+    if 'axis_inf' in kwargs:
+        raise ValueError('use ip_axis_2d instead of axis_inf')
+    if ip_axis_2d is None:
+        if fd.length > fd.width:
+            fd_length = fd.length
+            fd_width = fd.width
+        else:
+            fd_length = fd.width
+            fd_width = fd.length
+        area_foundation = fd_length * fd_width
+    elif ip_axis_2d == 'length':
         fd_width = fd.length
-    area_foundation = fd_length * fd_width
+        fd_length = None
+        area_foundation = fd_width
+    elif ip_axis_2d == 'width':
+        fd_width = fd.width
+        fd_length = None
+        area_foundation = fd_width
+    else:
+        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
+
     c_a = 0.6 - 1.0 * sl.cohesion
 
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
@@ -148,7 +233,7 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     return capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs)
 
 
-def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
+def capacity_terzaghi_1943(sl, fd, round_footing=False, ip_axis_2d=None, verbose=0, **kwargs):
     """
     Calculates the foundation capacity according Terzaghi (1943)
     Ref: http://geo.cv.nctu.edu.tw/foundation/
@@ -164,12 +249,23 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
-    if fd.length > fd.width:  # TODO: deal with plane strain
-        fd_length = fd.length
-        fd_width = fd.width
-    else:
-        fd_length = fd.width
+    if 'axis_inf' in kwargs:
+        raise ValueError('use ip_axis_2d instead of axis_inf')
+    if ip_axis_2d is None:
+        if fd.length > fd.width:
+            fd_length = fd.length
+            fd_width = fd.width
+        else:
+            fd_length = fd.width
+            fd_width = fd.length
+    elif ip_axis_2d == 'length':
         fd_width = fd.length
+        fd_length = None
+    elif ip_axis_2d == 'width':
+        fd_width = fd.width
+        fd_length = None
+    else:
+        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
 
     a02 = ((np.exp(np.pi * (0.75 - sl.phi / 360) * np.tan(sl.phi_r))) ** 2)
     a0_check = (np.exp((270 - sl.phi) / 180 * np.pi * np.tan(sl.phi_r)))
@@ -213,7 +309,7 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, verbose=0, **kwargs):
     return fd.q_ult
 
 
-def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, **kwargs):
+def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0, **kwargs):
     """
     Calculates the foundation capacity according Hansen (1970)
     Ref: http://bestengineeringprojects.com/civil-projects/
@@ -233,12 +329,23 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
 
-    if fd.length > fd.width:  # TODO: deal with plane strain
-        fd_length = fd.length
-        fd_width = fd.width
-    else:
-        fd_length = fd.width
+    if 'axis_inf' in kwargs:
+        raise ValueError('use ip_axis_2d instead of axis_inf')
+    if ip_axis_2d is None:
+        if fd.length > fd.width:
+            fd_length = fd.length
+            fd_width = fd.width
+        else:
+            fd_length = fd.width
+            fd_width = fd.length
+    elif ip_axis_2d == 'length':
         fd_width = fd.length
+        fd_length = None
+    elif ip_axis_2d == 'width':
+        fd_width = fd.width
+        fd_length = None
+    else:
+        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
     area_foundation = fd_length * fd_width
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
     c_a = 0.6 - 1.0 * sl.cohesion
@@ -251,13 +358,18 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     fd.ng_factor = 1.5 * (fd.nq_factor - 1) * np.tan(sl.phi_r)
 
     # shape factors
-    if sl.phi_r == 0:
-        s_c = 0.2 * fd_width / fd_length
+    if fd_length is None:
+        s_c = 1
+        s_q = 1
+        s_g = 1
     else:
-        s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
+        if sl.phi_r == 0:
+            s_c = 0.2 * fd_width / fd_length
+        else:
+            s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
 
-    s_q = 1.0 + fd_width / fd_length * np.sin(sl.phi_r)
-    s_g = 1.0 - 0.4 * fd_width / fd_length
+        s_q = 1.0 + fd_width / fd_length * np.sin(sl.phi_r)
+        s_g = 1.0 - 0.4 * fd_width / fd_length
 
     # depth factors:
     if fd.depth / fd_width > 1:
@@ -333,7 +445,7 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
                     fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
 
 
-def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, axis_inf=None, verbose=0, **kwargs):
+def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_axis_2d=None, verbose=0, **kwargs):
     """
     Calculates the foundation capacity according Meyerhoff (1963)
     http://www.engs-comp.com/meyerhof/index.shtml
@@ -350,21 +462,23 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, axis_
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
-    if axis_inf is None:
+    if 'axis_inf' in kwargs:
+        raise ValueError('use ip_axis_2d instead of axis_inf')
+    if ip_axis_2d is None:
         if fd.length > fd.width:
             fd_length = fd.length
             fd_width = fd.width
         else:
             fd_length = fd.width
             fd_width = fd.length
-    elif axis_inf == 'width':
+    elif ip_axis_2d == 'length':
         fd_width = fd.length
         fd_length = None
-    elif axis_inf == 'length':
+    elif ip_axis_2d == 'width':
         fd_width = fd.width
         fd_length = None
     else:
-        raise ValueError(f'axis_inf must be either: None, "width", or "length" not {axis_inf}')
+        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
 
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 *
                     np.exp(np.pi * np.tan(sl.phi_r)))
@@ -781,7 +895,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     return fd
 
 
-def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, axis_inf=None, **kwargs):
+def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, ip_axis_2d=None, **kwargs):
     """
     Determine the size of a footing given an aspect ratio and a load
 
@@ -800,11 +914,11 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, axis_inf=
     new_fd.depth = fd.depth
     new_fd.length = fd.length
     prev_ub_len = fd.length
-    q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), axis_inf=axis_inf)
-    if axis_inf is None:
+    q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), ip_axis_2d=ip_axis_2d)
+    if ip_axis_2d is None:
         area = fd.area
     else:
-        area = getattr(fd, fd.ip_axis)
+        area = getattr(fd, ip_axis_2d)
     init_fos = (q_ult * area) / vertical_load  # TODO: should this have overburden pressure?
     if init_fos < 1.0:
         raise ValueError
@@ -814,11 +928,11 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, axis_inf=
     prev_q = q_ult
     for i in range(50):
         setattr(new_fd, ip_axis, est_len)
-        q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), axis_inf=axis_inf)
-        if axis_inf is None:
+        q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), ip_axis_2d=ip_axis_2d)
+        if ip_axis_2d is None:
             area = new_fd.area
         else:
-            area = getattr(new_fd, fd.ip_axis)
+            area = getattr(new_fd, ip_axis_2d)
         curr_fos = (q * area) / vertical_load
         if np.isclose(curr_fos, 1.0, rtol=0.01):
             break

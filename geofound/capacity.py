@@ -6,37 +6,82 @@ from geofound import models
 import sfsimodels as sm
 
 
-def calc_m_eff_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=101.0e3, gwl=1e6):
-    if ip_axis_2d is None:
-        if fd.length > fd.width:
-            fd_length = fd.length
-            fd_width = fd.width
-        else:
-            fd_length = fd.width
-            fd_width = fd.length
-        b_o_l = fd_width / fd_length
-    elif ip_axis_2d == 'length':
-        fd_width = fd.length
-        b_o_l = 1
-    elif ip_axis_2d == 'width':
-        fd_width = fd.width
-        b_o_l = 1
-    else:
-        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
-    assert 0.01 < sl.unit_weight / p_atm < 10, (sl.unit_weight, p_atm)
-    if gwl == 0:
-        unit_weight = sl.unit_bouy_weight
-    elif gwl >= fd.depth + fd_width:
-        unit_weight = sl.unit_dry_weight
-    elif 0 < gwl < fd.depth:
-        unit_weight = sl.unit_bouy_weight
-    elif fd.depth <= gwl <= fd.depth + fd_width:
-        average_unit_bouy_weight = sl.unit_bouy_weight + (
-            ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
-        unit_weight = average_unit_bouy_weight
+def calc_shape_factor_coh_salgado_et_al_2004(fd):
+    """
+    Salgado (2008) Eq. 10.22 and Table 10-3
 
-    sigma_meff = 20 * p_atm * (unit_weight * fd_width / p_atm) ** 0.7 * (1 - 0.32 * b_o_l)
-    return sigma_meff
+    Parameters
+    ----------
+    fd: sm.Foundation
+
+    Returns
+    -------
+
+    """
+    if fd.length > fd.width:
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
+    b_o_l = fd_width / fd_length
+    bols = [0.2, 0.25, 0.33, 0.5, 1]
+    c1s = [0.190, 0.172, 0.159, 0.156, 0.125]
+    c2s = [0.090, 0.11, 0.137, 0.173, 0.219]
+    c1 = np.interp(b_o_l, bols, c1s)
+    c2 = np.interp(b_o_l, bols, c2s)
+    return 1 + c1 * b_o_l + c2 * np.sqrt(fd.depth / fd_width)
+
+
+def calc_shape_factor_coh_gourvenec_2007(fd):
+    if fd.length > fd.width:
+        fd_length = fd.length
+        fd_width = fd.width
+    else:
+        fd_length = fd.width
+        fd_width = fd.length
+    b_o_l = fd_width / fd_length
+    return 1 + 0.214 * b_o_l - 0.067 * b_o_l ** 2
+
+
+def calc_phi_peak_bolton_1986(phi_c_txc, p_eff, d_r, k=2, q=10, r=1, p_atm=101.0e3):
+    """
+    
+    :param phi_c_txc: float
+        Constant volume friction angle in triaxial compression [degrees]
+    :param p_eff: 
+    :param sl: 
+    :param k: k=1 for plane strain, =2 for triaxial compression
+    :param q: 
+    :param r: 
+    :param p_atm: 
+    :return: 
+    """
+    i_r = d_r * (q - np.log(100 * p_eff / p_atm)) - r  # From Salgado 2000 (adapted to give consistent units)
+    # i_r = sl.relative_density * (q - np.log(p_eff)) - r
+    a_psi = (5 - 2 * (k - 1))
+    return phi_c_txc + a_psi * i_r
+
+
+def calc_phi_peak_fd_salgado_2008(phi_c_txc, p_eff, d_r, l_o_b=None, fd=None, q=10, r=1, p_atm=101.0e3):
+    """
+
+    :param phi_c_txc: float
+        Constant volume friction angle in triaxial compression [degrees]
+    :param p_eff:
+    :param sl:
+    :param k: k=1 for plane strain, =2 for triaxial compression
+    :param q:
+    :param r:
+    :param p_atm:
+    :return:
+    """
+    if l_o_b is None:
+        l_o_b = max(fd.length / fd.width, fd.width / fd.length)
+    i_r = d_r * (q - np.log(100 * p_eff / p_atm)) - r  # From Salgado 2000 (adapted to give consistent units)
+    # i_r = sl.relative_density * (q - np.log(p_eff)) - r
+    a_psi = np.clip(1. / 3 * (l_o_b + 8), 3, 5)
+    return phi_c_txc + a_psi * i_r
 
 
 def calc_phi_bc_strip_loukidis_2019(phi_c_txc, sl, fd, ip_axis_2d, p_atm=101.0e3, gwl=1e6):
@@ -76,7 +121,57 @@ def calc_phi_bc_strip_loukidis_2019(phi_c_txc, sl, fd, ip_axis_2d, p_atm=101.0e3
     return phi_c_txc + ((17.6 * sl.relative_density - 8.8) - 2.44 * np.log(fd_width * unit_weight / p_atm))
 
 
-def calc_m_eff_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
+def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=101.0e3, gwl=1e6):
+    if ip_axis_2d is None:
+        if fd.length > fd.width:
+            fd_length = fd.length
+            fd_width = fd.width
+        else:
+            fd_length = fd.width
+            fd_width = fd.length
+        b_o_l = fd_width / fd_length
+    elif ip_axis_2d == 'length':
+        fd_width = fd.length
+        b_o_l = 1
+    elif ip_axis_2d == 'width':
+        fd_width = fd.width
+        b_o_l = 1
+    else:
+        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
+    assert 0.01 < sl.unit_weight / p_atm < 10, (sl.unit_weight, p_atm)
+    if gwl == 0:
+        unit_weight = sl.unit_bouy_weight
+    elif gwl >= fd.depth + fd_width:
+        unit_weight = sl.unit_dry_weight
+    elif 0 < gwl < fd.depth:
+        unit_weight = sl.unit_bouy_weight
+    elif fd.depth <= gwl <= fd.depth + fd_width:
+        average_unit_bouy_weight = sl.unit_bouy_weight + (
+            ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+        unit_weight = average_unit_bouy_weight
+
+    sigma_meff = 20 * p_atm * (unit_weight * fd_width / p_atm) ** 0.7 * (1 - 0.32 * b_o_l)
+    return sigma_meff
+
+
+def calc_m_eff_bc_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
+    """
+    Calculation of average confining stress to compute peak friction angle for ultimate bearing capacity
+
+    # Equation taken from Salgado 2008 page 442
+
+    Parameters
+    ----------
+    sl
+    fd
+    q_ult
+    ip_axis_2d
+    gwl
+
+    Returns
+    -------
+
+    """
     if ip_axis_2d is None:
         if fd.length > fd.width:
             fd_width = fd.width
@@ -90,10 +185,10 @@ def calc_m_eff_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
         raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
     if gwl == 0:
         q_d = sl.unit_eff_weight * fd.depth
-    elif gwl > 0 and gwl < fd.depth:
+    elif 0 < gwl < fd.depth:
         q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
 
-    elif gwl >= fd.depth and gwl <= fd.depth + fd_width:
+    elif fd.depth <= gwl <= fd.depth + fd_width:
         sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
             ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
         q_d = sl.unit_dry_weight * fd.depth
@@ -101,7 +196,8 @@ def calc_m_eff_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
     return sigma_meff
 
 
-def calc_m_eff_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None):
+def calc_m_eff_bc_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None):
+    # for bearing capacity
     if ip_axis_2d is None:
         if fd.length > fd.width:
             fd_length = fd.length
@@ -118,8 +214,9 @@ def calc_m_eff_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None):
         l_o_b = 10
     else:
         raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
-    sigma_meff = max(1. / 6 * (0.52 - 0.04 * l_o_b), q_demand / 25)
-
+    a = 1. / 6 * (0.52 - 0.04 * l_o_b)
+    sigma_meff = max(1. / 6 * (0.52 - 0.04 * l_o_b) * q_demand, q_demand / 25)
+    return sigma_meff
 
 
 def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0, gwl=1e6, **kwargs):
@@ -281,6 +378,7 @@ def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
 def capacity_terzaghi_1943(sl, fd, round_footing=False, ip_axis_2d=None, verbose=0, **kwargs):
     """
     Calculates the foundation capacity according Terzaghi (1943)
+
     Ref: http://geo.cv.nctu.edu.tw/foundation/
     download/BearingCapacityOfFoundations.pdf
 
@@ -354,7 +452,7 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, ip_axis_2d=None, verbose
     return fd.q_ult
 
 
-def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0, **kwargs):
+def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0, **kwargs):
     """
     Calculates the foundation capacity according Hansen (1970)
     Ref: http://bestengineeringprojects.com/civil-projects/
@@ -395,6 +493,7 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
     horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
     c_a = 0.6 - 1.0 * sl.cohesion
 
+    # Note: exact solution for associated flow rule
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
     if sl.phi_r == 0:
         fd.nc_factor = 5.14
@@ -488,6 +587,9 @@ def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_ti
                     q_d * fd.nq_factor * s_q * d_q * i_q * g_q * b_q +
                     0.5 * fd_width * sl.unit_dry_weight *
                     fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
+
+def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0, **kwargs):
+    return capacity_brinch_hansen_1970(sl, fd, h_l=h_l, h_b=h_b, vertical_load=vertical_load, slope=slope, base_tilt=base_tilt, ip_axis_2d=ip_axis_2d, verbose=verbose, **kwargs)
 
 
 def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_axis_2d=None, verbose=0, **kwargs):
@@ -749,14 +851,14 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
     return fd.q_ult
 
 
-def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kwargs):
+def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save_factors=0, **kwargs):
     """
     Calculates the capacity according to
      The Engineering of Foundations textbook by Salgado
 
      ISBN: 0072500581
 
-     The method combines load factors from Bolton (1979) and shape factors from Brinch-Hansen (1970)
+     The method combines load factors from Bolton (1979) and shape factors from Lyamin et al. (2006)
 
     :param sl: Soil object
     :param fd: Foundation object
@@ -771,11 +873,11 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
-
+    use_bh1970_factors = kwargs.get('use_bh1970_factors', 0)
     h_eff_b = kwargs.get("h_eff_b", 0)
     h_eff_l = kwargs.get("h_eff_l", 0)
     ip_axis_2d = kwargs.get('ip_axis_2d', None)
-    # TODO: implement phi as fn of sigma_m
+
     temp_fd_length = fd.length
     temp_fd_width = fd.width
     if ip_axis_2d is not None:
@@ -788,7 +890,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
     v_l = kwargs.get("loc_v_l", temp_fd_length / 2)  # given in fd coordinates
     v_b = kwargs.get("loc_v_b", temp_fd_width / 2)
 
-    if temp_fd_length > temp_fd_width:  # TODO: deal with plane strain
+    if temp_fd_length > temp_fd_width:
         fd_length = temp_fd_length
         fd_width = temp_fd_width
         loc_v_l = v_l
@@ -803,8 +905,8 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
         loc_h_b = h_l
         loc_h_l = h_b
 
-    ecc_b = loc_h_b * h_eff_b / vertical_load
-    ecc_l = loc_h_l * h_eff_l / vertical_load
+    ecc_b = loc_h_b * h_eff_b / vertical_load  # Eccentricity from horizontal load
+    ecc_l = loc_h_l * h_eff_l / vertical_load  # Eccentricity from horizontal load
 
     width_eff = min(fd_width, 2 * (loc_v_b + ecc_b), 2 * (fd_width - loc_v_b - ecc_b))
     length_eff = min(fd_length, 2 * (loc_v_l + ecc_l), 2 * (fd_length - loc_v_l - ecc_l))
@@ -814,32 +916,50 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
         DesignError("failed on eccentricity")
 
     # LOAD FACTORS:
-    fd.nq_factor = np.exp(np.pi * np.tan(sl.phi_r)) * (1 + np.sin(sl.phi_r)) / (1 - np.sin(sl.phi_r))
-    # fd.ng_factor = 1.5 * (fd.nq_factor - 1) * np.tan(sl.phi_r)
-    fd.ng_factor = (fd.nq_factor - 1) * np.tan(1.32 * sl.phi_r)
+    fd.nq_factor = np.exp(np.pi * np.tan(sl.phi_r)) * (1 + np.sin(sl.phi_r)) / (1 - np.sin(sl.phi_r))  # Eq 10.6
+    fd.ng_factor = (fd.nq_factor - 1) * np.tan(1.32 * sl.phi_r)  # Eq 10.13
+    if use_bh1970_factors:
+        fd.ng_factor = 1.5 * (fd.nq_factor - 1) * np.tan(sl.phi_r)  # BH1970 (Eq 10.12)
     use_loukidis_and_salgado_2019 = 0
     if use_loukidis_and_salgado_2019:
         fd.ng_factor = (fd.nq_factor - 0.6) * np.tan(1.33 * sl.phi_r)
-    #
     if sl.phi_r == 0:
         fd.nc_factor = 5.14
     else:
-        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
+        fd.nc_factor = (fd.nq_factor - 1) * np.arctan(sl.phi_r)  # Eq 10.11 (application of Coquot's principle)
 
     # shape factors:
     if ip_axis_2d is not None:
         s_q = 1.0
         s_g = 1.0
+        s_c = 1.0
     else:
-        s_q = 1 + (width_eff / length_eff) * np.sin(sl.phi_r)
-        s_g = max(1 - 0.4 * width_eff / length_eff, 0.6)
-    s_c = 1.0
+        if use_bh1970_factors:
+            s_q = 1 + (width_eff / length_eff) * np.sin(sl.phi_r)
+            s_g = max(1 - 0.4 * width_eff / length_eff, 0.6)
+            if sl.phi_r == 0:
+                s_c = 1 + 0.2 * fd_width / fd_length
+            else:
+                s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
+        else:
+            # From Table 11-8 on page 496, note phi is in degrees
+            d_o_b = fd.depth / width_eff
+            b_o_l = width_eff / length_eff
+            s_q = 1 + (0.0952 * sl.phi - 1.60) * d_o_b ** (0.583 - 0.0079 * sl.phi) * b_o_l ** (1 - 0.15 * d_o_b)
+            s_g = 1 + (0.0345 * sl.phi -1.0611) * b_o_l
+            s_c = calc_shape_factor_coh_salgado_et_al_2004(fd)  # Salgado (2008) Eq. 10.22
 
     # depth factors:
     d_over_b = min(1, fd.depth / width_eff)  # limit to 1
-    d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * d_over_b
-    d_g = 1.0
-    d_c = 1.0
+    if fd.depth == 0:
+        d_q = 1.0
+    else:
+        if use_bh1970_factors:
+            d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * min(d_over_b, 1)
+        else:
+            d_q = 1 + (0.0044 * sl.phi + 0.356) * d_over_b ** -0.28  # Lyamin et al. (2006) [Salgado Table 10-7]
+    d_g = 1.0  # Both Lyamin and BH1970 (Table 10-7)
+    d_c = 1.0 + 0.27 * np.sqrt(fd.depth / width_eff)
 
     # stress at footing base:
     q_d = sl.unit_dry_weight * fd.depth
@@ -857,6 +977,16 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, **kw
         log("d_q: ", d_q)
         log("d_g: ", d_g)
         log("q_d: ", q_d)
+    if save_factors:
+        fd.width_eff = width_eff
+        fd.length_eff = length_eff
+        fd.s_c = s_c
+        fd.s_q = s_q
+        fd.s_g = s_g
+        fd.d_c = d_c
+        fd.d_q = d_q
+        fd.d_g = d_g
+        fd.q_d = q_d
 
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c +

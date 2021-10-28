@@ -72,10 +72,10 @@ def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0, satur
         l = fd.width * 0.5
         b = fd.length * 0.5
     if (ip_axis == 'length' and len_dominant) or (ip_axis == 'width' and not len_dominant):
-        y_axis = True  # Direction of l
+        x_axis = True  # Direction of l
     else:
-        y_axis = False  # Direction of b
-    if y_axis:
+        x_axis = False  # Direction of b
+    if x_axis:
         f_dyn_v3 = tdc.get_cy_gazetas_v_e_0p3(a0, l / b)
         f_dyn_v5 = tdc.get_cy_gazetas_v_e_0p3(a0, l / b)
         f_dyn = np.interp(sl.poissons_ratio, [0.3, 0.5], [f_dyn_v3, f_dyn_v5])
@@ -148,14 +148,39 @@ def calc_rot_via_gazetas_1991(sl, fd, a0, ip_axis='width', saturated=False, f_co
     else:
         xx_axis = False
     if xx_axis:
-        c_static = rho * v_la * i_bx
+        c_static_surf = rho * v_la * i_bx
         f_dyn = tdc.get_crx_gazetas(a0, l / b)
-        c_emb = 0.0
+        if fd.depth is not None and fd.depth != 0.0:
+            if fd.depth < 0.0:
+                raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+            if f_contact == 0.0:
+                dw = 0.0
+            else:
+                dw = min(fd.height, fd.depth) * f_contact
+            # effective wall contact inertia around base of footing (I=b*h3/12 + A*d^2)
+            i_wce = (b * dw ** 3 / 12 + (b * dw) * (dw / 2) ** 2) * 2
+            c_1 = 0.25 + 0.65 * np.sqrt(a0) * (dw / fd.depth) ** (-a0 / 2) * (fd.depth / b) ** (-0.25)
+            c_emb = rho * v_la * i_wce * c_1
+        else:
+            c_emb = 0
     else:
-        c_static = rho * v_la * i_by
+        c_static_surf = rho * v_la * i_by
         f_dyn = tdc.get_cry_gazetas(a0, l / b)
-        c_emb = 0.0  # TODO: this is wrong - but formula is very hard to interpret
-    return c_static * f_dyn + c_emb
+        if fd.depth is not None and fd.depth != 0.0:
+            if fd.depth < 0.0:
+                raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+            if f_contact == 0.0:
+                dw = 0.0
+                c_emb = 0.0
+            else:
+                dw = min(fd.height, fd.depth) * f_contact
+                # effective wall contact inertia around base of footing (I=b*h3/12 + A*d^2) x2 since front and back wall
+                i_wce = (l * dw ** 3 / 12 + (l * dw) * (dw / 2) ** 2) * 2
+                c_1 = 0.25 + 0.65 * np.sqrt(a0) * (dw / fd.depth) ** (-a0 / 2) * (fd.depth / l) ** (-0.25)
+                c_emb = rho * v_la * i_wce * c_1
+        else:
+            c_emb = 0
+    return c_static_surf * f_dyn + c_emb  # Note that there is not f_emb_dyn term
 
 
 def calc_rot_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', saturated=False, f_contact=1.0):
@@ -168,9 +193,21 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', saturated=False
     l_ip = getattr(fd, ip_axis)
     i_bx = l_oop * l_ip ** 3 / 12
 
-    c_static = rho * v_la * i_bx
+    c_static_surf = rho * v_la * i_bx
     f_dyn = tdc.get_crx_gazetas(a0, lob=1000)
-    c_emb = 0.0
+    if fd.depth is not None and fd.depth != 0.0:
+        if fd.depth < 0.0:
+            raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
+        if f_contact == 0.0:
+            dw = 0.0
+        else:
+            dw = min(fd.height, fd.depth) * f_contact
+        # effective wall contact inertia around base of footing (I=b*h3/12 + A*d^2) x2 since front and back wall
+        i_wce = (l_oop * dw ** 3 / 12 + (l_oop * dw) * (dw / 2) ** 2) * 2
+        c_1 = 0.25 + 0.65 * np.sqrt(a0) * (dw / fd.depth) ** (-a0 / 2)
+        c_emb = rho * v_la * i_wce * c_1
+    else:
+        c_emb = 0
 
     return c_static * f_dyn + c_emb
 

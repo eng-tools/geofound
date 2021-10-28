@@ -9,10 +9,10 @@ _pi = 3.14159265359
 
 
 def calc_a0(period, l_ip, shear_vel):
-    return (_pi / period) * l_ip / shear_vel
+    return (2 * _pi / period) * l_ip / shear_vel
 
 
-def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0, **kwargs):
+def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, axis=None, a0=0.0, f_contact=1.0, **kwargs):
     """
     Rotation stiffness of foundation from Gazetas (1991) and Mylonakis et al. (2006)
 
@@ -34,9 +34,12 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
     k_f: float
         Rotational stiffness of the foundation
     """
+    h_rigid = kwargs.get("h_rigid", None)
     if not kwargs.get("disable_requires", False):
         gf.models.check_required(sl, ["g_mod", "poissons_ratio"])
         gf.models.check_required(fd, ["length", "width", "depth"])
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
     if axis is not None:
         if axis == 'length':
             ip_axis = 'width'
@@ -56,7 +59,7 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
         i_by = fd.i_ll
         i_bx = fd.i_ww
     if (ip_axis == 'width' and len_dominant) or (ip_axis == 'length' and not len_dominant):
-        xx_axis = True  # weaker rotation
+        xx_axis = True  # weaker rotation (rotation about longest length)
     else:
         xx_axis = False
 
@@ -100,10 +103,14 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_cont
                 #     warnings.warn('D/B should be less than or equal to 2/3 - See Gazetas (1983) Table 9', EquationWarning, stacklevel=2)
                 # whereas Mylonakis has this form:
                 # n_emb = 1 + 0.92 * (dw / b) ** 0.6 * (1.5 + (dw / fd.depth) ** 1.9 * (b / l) ** -0.6)
-    return k_static_surf * f_dyn * n_emb
+    if h_rigid:
+        n_rigid = 1 + 0.2 * b / h_rigid
+    else:
+        n_rigid = 1
+    return k_static_surf * f_dyn * n_emb * n_rigid
 
 
-def calc_rotational_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0, **kwargs):
+def calc_rotational_via_gazetas_1991(sl, fd, ip_axis=None, axis=None, a0=0.0, f_contact=1.0, **kwargs):
     return calc_rot_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, f_contact=f_contact, **kwargs)
 
 
@@ -172,7 +179,7 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1
     return k_strip * n_emb * f_dyn * n_rigid
 
 
-def calc_horz_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0):
+def calc_horz_via_gazetas_1991(sl, fd, ip_axis, axis=None, a0=0.0, f_contact=1.0):
     """
     Calculate the shear stiffness for translation along an axis.
 
@@ -206,12 +213,12 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_con
         b = fd.length * 0.5
 
     if (ip_axis == 'length' and len_dominant) or (ip_axis == 'width' and not len_dominant):
-        y_axis = True  # Direction of l
+        x_axis = True  # Direction of l
     else:
-        y_axis = False  # Direction of b
+        x_axis = False  # Direction of b
     v = sl.poissons_ratio
     k_y = 2 * sl.g_mod * l / (2 - v) * (2.0 + 2.5 * (b / l) ** 0.85)
-    if y_axis is False:  # x_axis
+    if x_axis is False:  # x_axis
         k_shear = (k_y - (0.2 * sl.g_mod * l) / (0.75 - v) * (1.0 - b / l))
         f_dyn = 1.0
         if fd.depth:
@@ -225,7 +232,7 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_con
         else:
             f_dyn = 1.0
         if fd.depth:
-            z_w = (fd.depth + (fd.depth - fd.height)) / 2
+            z_w = (fd.depth + (fd.depth - min(fd.height, fd.depth))) / 2
             h = min([fd.height, fd.depth])
             a_w = 2 * h * (fd.width + fd.length) * f_contact
             n_emb = (1 + 0.15 * (fd.depth / b) ** 0.5) * (1 + 0.52 * (z_w * a_w / (b * l ** 2)) ** 0.4)
@@ -456,27 +463,46 @@ def calc_rot_via_pais_1988(sl, fd, ip_axis='width', a0=0.0, **kwargs):
         l = fd.width * 0.5
         b = fd.length * 0.5
     if (ip_axis == 'width' and len_dominant) or (ip_axis == 'length' and not len_dominant):
-        x_axis = True
+        xx_axis = True  # weaker rotation (rotation about longest length)
     else:
-        x_axis = False
+        xx_axis = False
 
     v = sl.poissons_ratio
     n_emb = 1
-    if x_axis:
-        k_rx = 1 - ((0.55 + 0.01 * (l / b - 1) ** 0.5) * a0 ** 2 / ((2.4 - 0.4 / (l / b) ** 3) + a0 ** 2))
+    if xx_axis:
         # x-axis
-        k_f_0 = (sl.g_mod * b ** 3 / (1 - v) * (3.2 * (l / b) + 0.8)) * k_rx
+        k_rx_dyn_surf = 1 - ((0.55 + 0.01 * (l / b - 1) ** 0.5) * a0 ** 2 / ((2.4 - 0.4 / (l / b) ** 3) + a0 ** 2))
+        k_f_0_static_surf = (sl.g_mod * b ** 3 / (1 - v) * (3.2 * (l / b) + 0.8))
         if fd.depth is not None and fd.depth != 0.0:
+            d = fd.depth
             if fd.depth < 0.0:
                 raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
             n_emb = 1.0 + fd.depth / b + (1.6 / (0.35 + (l / b)) * (fd.depth / b) ** 2)
+            chi = np.sqrt(2 * (1 - v) / (1 - 2 * v))
+            k_f_0_static = k_f_0_static_surf * n_emb
+            k_rx_dyn = ((4. / 3) * ((d / b) + (d/b)**3 + chi * (l / b) * (d / b) ** 3 + 3 * (d / b) * (l / b) + chi * (l / b)) * a0 ** 2 / (k_f_0_static / (sl.g_mod * b **3)) * ((1.8 / (1 + 1.75 * (l/b - 1)) + a0 **2)) +
+                        (4. / 3) * (chi * l / b + 1) * (d/b)**3 / (k_f_0_static / (sl.g_mod * b **3))) * (a0 / (2 * k_rx_dyn_surf))
+        else:
+            k_f_0_static = k_f_0_static_surf
+            k_rx_dyn = k_rx_dyn_surf
+        k_f_0 = k_f_0_static * k_rx_dyn
     else:
-        k_ry = 1 - (0.55 * a0 ** 2 / ((0.6 + 1.4 / (l / b) ** 3) + a0 ** 2))
-        k_f_0 = (sl.g_mod * b ** 3 / (1 - v) * (3.73 * (l / b) ** 2.4 + 0.27)) * k_ry
+        k_ry_dyn_surf = 1 - (0.55 * a0 ** 2 / ((0.6 + 1.4 / (l / b) ** 3) + a0 ** 2))
+        k_f_0_static_surf = (sl.g_mod * b ** 3 / (1 - v) * (3.73 * (l / b) ** 2.4 + 0.27))
         if fd.depth is not None and fd.depth != 0.0:
+            d = fd.depth
             if fd.depth < 0.0:
                 raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
-            n_emb = 1.0 + fd.depth / b + (1.6 / (0.35 + (l / b) ** 4) * (fd.depth / b) ** 2)
+            n_emb = 1.0 + d / b + (1.6 / (0.35 + (l / b) ** 4) * (d / b) ** 2)
+            k_f_0_static = k_f_0_static_surf * n_emb
+            k_ry_dyn = ((4. / 3) * ((l / b) ** 3 * (d / b) + chi * (l / b) * (d / b) ** 3 + (d/b)**3 + 3 * (d / b) * (l / b) ** 2 + chi * (
+                            l / b) ** 3) * a0 ** 2 / (k_f_0_static / (sl.g_mod * b ** 3)) * ((1.8 / (1 + 1.75 * (l / b - 1)) + a0 ** 2)) +
+                        (4. / 3) * (l / b + chi) * (d / b) ** 3 / (k_f_0_static / (sl.g_mod * b ** 3))) * (
+                                   a0 / (2 * k_ry_dyn_surf))
+        else:
+            k_f_0_static = k_f_0_static_surf
+            k_ry_dyn = k_ry_dyn_surf
+        k_f_0 = k_f_0_static * k_ry_dyn
 
     return k_f_0 * n_emb
 
@@ -505,9 +531,13 @@ def calc_vert_via_pais_1988(sl, fd, a0=0):
         if fd.depth < 0.0:
             raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
         n_emb = 1 + (0.25 + 0.25 / (l / b)) * (fd.depth / b) ** 0.8
-    return k_v_0 * kz * n_emb
 
-# Deprecated
+    if a0:
+        f_dyn_surf = 1. - ((0.4 + 0.2 / (l / b) * a0 ** 2) / (10 / (1 + 3 * (l / b) - 1)) + a0 ** 2)
+
+    else:
+        f_dyn_surf = 1
+    return k_v_0 * kz * n_emb * f_dyn_surf
 
 
 def get_vert_gazetas_1991(sl, fd, a0):

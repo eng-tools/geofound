@@ -80,6 +80,28 @@ def test_meyerhof():
     assert np.isclose(fd.q_ult, 573.3, rtol=0.001)
 
 
+def test_salgado_2008():
+    length = 3
+    width = 2
+    depth = 0.75
+    phi = 36.1
+    cohesion = 0.0  # kPa
+    unit_dry_weight = 20.0  # kN/m3
+    sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
+    fd = geofound.create_foundation(length, width, depth)
+    geofound.capacity_salgado_2008(sl, fd, gwl=1000, verbose=0, save_factors=1)
+    print(fd.ng_factor)
+    assert np.isclose(fd.nq_factor, 38.3, rtol=0.01)  # page 446
+    assert np.isclose(fd.ng_factor, 40.9, rtol=0.01)
+    assert np.isclose(fd.q_d, 15.0, rtol=0.001), fd.qd
+    assert np.isclose(fd.s_q, 1.935, rtol=0.01), getattr(fd, 's_q')
+    assert np.isclose(fd.s_g, 1.12, rtol=0.01), fd.s_g
+    assert np.isclose(fd.d_q, 1.68, rtol=0.01), fd.d_q
+    assert np.isclose(fd.d_g, 1.0, rtol=0.01), fd.d_g
+
+    assert np.isclose(fd.q_ult, 2780.0, rtol=0.001), fd.q_ult  # Note: differs from text due to rounding in the text
+
+
 def test_meyerhof_using_fabrizio_problem1():
     """
     http:
@@ -538,7 +560,7 @@ def test_calc_m_eff_via_loukidis_and_salgado_2006():
     fd.depth = 0.0
     sl = models.Soil(unit_dry_weight=17.1e3)
     m_eff_expected = 742.0  # kPa
-    m_eff = geofound.calc_m_eff_via_loukidis_and_salgado_2006(sl, fd, p_atm=100.0e3) / 1e3
+    m_eff = geofound.calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, p_atm=100.0e3) / 1e3
     assert np.isclose(m_eff, m_eff_expected, rtol=0.01), m_eff
 
 # def test_meyerhof_and_hanna_capacity_strong_clay_over_weak_sand_vs_limitstategeo():

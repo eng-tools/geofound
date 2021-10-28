@@ -24,7 +24,7 @@ class RaftFoundation(models.RaftFoundation):
     nq_factor = 0.0
 
     def __repr__(self):
-        return self.length, self.width, self.height
+        return f'RaftFoundation: L:{self.length}, W:{self.width}, H:{self.height}, D:{self.depth}'
 
 
 class Foundation(FoundationRaft):

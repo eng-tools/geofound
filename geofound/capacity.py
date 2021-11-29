@@ -791,8 +791,7 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
         d_c = 1 + 0.4 * k
         d_q = 1.0
     else:
-        d_q = (1 + 2 * np.tan(sl.phi_r) *
-               (1 - np.sin(sl.phi_r)) ** 2 * k)
+        d_q = (1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * k)
         d_c = d_q - (1 - d_q) / (fd.nq_factor * np.tan(sl.phi_r))
     d_g = 1.0
 
@@ -824,22 +823,23 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
     q_d = sl.unit_dry_weight * fd.depth
 
     if verbose:
-        log("Nc: ", fd.nc_factor)
-        log("Nq: ", fd.nq_factor)
-        log("Ng: ", fd.ng_factor)
-        log("H: ", horizontal_load)
-        log("s_c: ", s_c)
-        log("s_q: ", s_q)
-        log("s_g: ", s_g)
-        log("d_c: ", d_c)
-        log("d_q: ", d_q)
-        log("d_g: ", d_g)
-        log("i_c: ", i_c)
-        log("i_q: ", i_q)
-        log("i_g: ", i_g)
-        log("g_c: ", g_c)
-        log("g_q: ", g_q)
-        log("g_g: ", g_g)
+        log("Nc: %.3f" % fd.nc_factor)
+        log("Nq: %.3f" % fd.nq_factor)
+        log("Ng: %.3f" % fd.ng_factor)
+        log("H: %.3f" % horizontal_load)
+        log("s_c: %.3f" % s_c)
+        log("s_q: %.3f" % s_q)
+        log("s_g: %.3f" % s_g)
+        log("d_c: %.3f" % d_c)
+        log("d_q: %.3f" % d_q)
+        log("d_g: %.3f" % d_g)
+        log("i_c: %.3f" % i_c)
+        log("i_q: %.3f" % i_q)
+        log("i_g: %.3f" % i_g)
+        log("g_c: %.3f" % g_c)
+        log("g_q: %.3f" % g_q)
+        log("g_g: %.3f" % g_g)
+        log("q_d: %.3f" % q_d)
 
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c * g_c +
@@ -847,7 +847,7 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
                 0.5 * width_eff * sl.unit_dry_weight *
                 fd.ng_factor * s_g * d_g * i_g * g_g)
     if verbose:
-        log("q_ult: ", fd.q_ult)
+        log("q_ult: %.3f" % fd.q_ult)
     return fd.q_ult
 
 
@@ -928,6 +928,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     else:
         fd.nc_factor = (fd.nq_factor - 1) * np.arctan(sl.phi_r)  # Eq 10.11 (application of Coquot's principle)
 
+    d_o_b_min = 2.0  # Range from Lyamin is 0-2
     # shape factors:
     if ip_axis_2d is not None:
         s_q = 1.0
@@ -943,23 +944,26 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
                 s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
         else:
             # From Table 11-8 on page 496, note phi is in degrees
-            d_o_b = fd.depth / width_eff
+            d_o_b = min(fd.depth / width_eff, d_o_b_min)
             b_o_l = width_eff / length_eff
-            s_q = 1 + (0.0952 * sl.phi - 1.60) * d_o_b ** (0.583 - 0.0079 * sl.phi) * b_o_l ** (1 - 0.15 * d_o_b)
+            if d_o_b == 0:
+                s_q = 1.0
+            else:
+                s_q = 1 + (0.0952 * sl.phi - 1.60) * d_o_b ** (0.583 - 0.0079 * sl.phi) * b_o_l ** (1 - 0.15 * d_o_b)
             s_g = 1 + (0.0345 * sl.phi -1.0611) * b_o_l
             s_c = calc_shape_factor_coh_salgado_et_al_2004(fd)  # Salgado (2008) Eq. 10.22
 
     # depth factors:
-    d_over_b = min(1, fd.depth / width_eff)  # limit to 1
+    d_o_b = min(d_o_b_min, fd.depth / width_eff)
     if fd.depth == 0:
         d_q = 1.0
     else:
         if use_bh1970_factors:
-            d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * min(d_over_b, 1)
+            d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * d_o_b
         else:
-            d_q = 1 + (0.0044 * sl.phi + 0.356) * d_over_b ** -0.28  # Lyamin et al. (2006) [Salgado Table 10-7]
+            d_q = 1 + (0.0044 * sl.phi + 0.356) * d_o_b ** -0.28  # Lyamin et al. (2006) [Salgado Table 10-7]
     d_g = 1.0  # Both Lyamin and BH1970 (Table 10-7)
-    d_c = 1.0 + 0.27 * np.sqrt(fd.depth / width_eff)
+    d_c = 1.0 + 0.27 * np.sqrt(d_o_b)
 
     # stress at footing base:
     q_d = sl.unit_dry_weight * fd.depth
@@ -1096,7 +1100,7 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, ip_axis_2
     new_fd.width = fd.width
     new_fd.depth = fd.depth
     new_fd.length = fd.length
-    prev_ub_len = fd.length
+    prev_ub_len = getattr(fd, ip_axis)
     q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), ip_axis_2d=ip_axis_2d)
     if ip_axis_2d is None:
         area = fd.area
@@ -1125,7 +1129,7 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, ip_axis_2
         else:
             prev_ub_len = est_len
             est_len = (prev_lb_len + est_len) / 2
-    if i == 49:
+    if i == 99:
         raise ValueError(init_fos, curr_fos, est_len, prev_lb_len, prev_ub_len)
     return est_len
 
@@ -1150,12 +1154,12 @@ def capacity_method_selector(sl, fd, method, **kwargs):
         return capacity_terzaghi_1943(sl, fd, **kwargs)
     elif method == 'hansen':
         return capacity_hansen_1970(sl, fd, **kwargs)
-    elif method == 'meyerhoff':
+    elif method == 'meyerhof':
         return capacity_meyerhof_1963(sl, fd, **kwargs)
     elif method == 'salgado':
         return capacity_salgado_2008(sl, fd, **kwargs)
     else:
-        raise ValueError("method must be 'vesic', 'nzs', 'terzaghi', ")
+        raise ValueError(f"{method} not found. method must be 'vesic', 'nzs', 'terzaghi', 'meyerhof', 'salgado'")
 
 
 available_methods = {
@@ -1163,7 +1167,7 @@ available_methods = {
     "nzs": capacity_nzs_vm4_2011,
     "terzaghi": capacity_terzaghi_1943,
     "hansen": capacity_hansen_1970,
-    "meyerhoff": capacity_meyerhof_1963,
+    "meyerhof": capacity_meyerhof_1963,
     "salgado": capacity_salgado_2008
 }
 

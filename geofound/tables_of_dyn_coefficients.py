@@ -209,5 +209,5 @@ def show_plots():
 
 
 if __name__ == '__main__':
-    print(get_kz_gazetas_v_lte_0p4(1, 1.5))
+    # print(get_kz_gazetas_v_lte_0p4(1, 1.5))
     show_plots()

@@ -8,8 +8,8 @@ from geofound import tables_of_dyn_coefficients as tdc
 _pi = 3.14159265359
 
 
-def calc_a0(period, l_ip, shear_vel):
-    return (2 * _pi / period) * l_ip / shear_vel
+def calc_a0(period, l_short, shear_vel):
+    return (2 * _pi / period) * (l_short / 2) / shear_vel
 
 
 def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, axis=None, a0=0.0, f_contact=1.0, **kwargs):
@@ -218,24 +218,26 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis, axis=None, a0=0.0, f_contact=1.0
         x_axis = False  # Direction of b
     v = sl.poissons_ratio
     k_y = 2 * sl.g_mod * l / (2 - v) * (2.0 + 2.5 * (b / l) ** 0.85)
-    if x_axis is False:  # x_axis
+    if x_axis:  # x_axis
         k_shear = (k_y - (0.2 * sl.g_mod * l) / (0.75 - v) * (1.0 - b / l))
         f_dyn = 1.0
         if fd.depth:
-            z_w = (fd.depth + (fd.depth - fd.height)) / 2
-            h = min([fd.height, fd.depth])
-            a_w = 2 * h * (fd.width + fd.length) * f_contact
-            n_emb = (1 + 0.15 * (fd.depth / l) ** 0.5) * (1 + 0.52 * (z_w * a_w / (l * b ** 2)) ** 0.4)
+            d_con = min([fd.height, fd.depth]) * f_contact
+            z_w = fd.depth - d_con / 2
+            a_w = 2 * d_con * (fd.width + fd.length)
+            n_emb = (1 + 0.15 * (fd.depth / b) ** 0.5) * (1 + 0.52 * (z_w * a_w / (l * b ** 2)) ** 0.4)
+            # TODO: add f_dyn for embedded case
     else:
         if a0:
             f_dyn = tdc.get_ky_gazetas(a0, l / b)
         else:
             f_dyn = 1.0
         if fd.depth:
-            z_w = (fd.depth + (fd.depth - min(fd.height, fd.depth))) / 2
-            h = min([fd.height, fd.depth])
-            a_w = 2 * h * (fd.width + fd.length) * f_contact
+            d_con = min([fd.height, fd.depth]) * f_contact
+            z_w = fd.depth - d_con / 2
+            a_w = 2 * d_con * (fd.width + fd.length)
             n_emb = (1 + 0.15 * (fd.depth / b) ** 0.5) * (1 + 0.52 * (z_w * a_w / (b * l ** 2)) ** 0.4)
+            # TODO: add f_dyn for embedded case
         k_shear = k_y
     return k_shear * n_emb * f_dyn
 

@@ -58,7 +58,7 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0,
     return rho * v_la * (l_ip * l_oop) * f_dyn + c_emb
 
 
-def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0, saturated=False):
+def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis, f_contact=1.0, saturated=False):
     if saturated:
         rho = sl.unit_sat_mass
     else:
@@ -76,15 +76,15 @@ def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0, satur
     else:
         x_axis = False  # Direction of b
     if x_axis:
-        f_dyn_v3 = tdc.get_cy_gazetas_v_e_0p3(a0, l / b)
-        f_dyn_v5 = tdc.get_cy_gazetas_v_e_0p3(a0, l / b)
-        f_dyn = np.interp(sl.poissons_ratio, [0.3, 0.5], [f_dyn_v3, f_dyn_v5])
+        f_dyn = 1.0  # No dynamic effect (See Table 15.1)
     else:
-        f_dyn = 1.0  # no dynamic effect
+        f_dyn_v3 = tdc.get_cy_gazetas_v_e_0p3(a0, l / b)
+        f_dyn_v5 = tdc.get_cy_gazetas_v_e_0p5(a0, l / b)
+        f_dyn = np.interp(sl.poissons_ratio, [0.3, 0.5], [f_dyn_v3, f_dyn_v5])
+    v_s = sl.get_shear_vel(saturated=saturated)
     if fd.depth is not None and fd.depth != 0.0:
         if fd.depth < 0.0:
             raise ValueError(f'foundation depth must be zero or greater, not {fd.depth}')
-        v_s = sl.get_shear_vel(saturated=saturated)
         v_la = 3.4 / (_pi * (1 - sl.poissons_ratio)) * v_s
         l_ip = getattr(fd, ip_axis)
         if ip_axis == 'width':
@@ -97,7 +97,7 @@ def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0, satur
         c_emb = rho * v_s * a_ws + rho * v_la * a_wc
     else:
         c_emb = 0.0
-    return rho * sl.get_shear_vel(saturated=saturated) * fd.area * f_dyn + c_emb
+    return rho * v_s * fd.area * f_dyn + c_emb
 
 
 def calc_horz_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0, saturated=False):
@@ -125,7 +125,7 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', f_contact=1.0,
     return rho * sl.get_shear_vel(saturated=saturated) * (l_ip * l_oop) * f_dyn + c_emb
 
 
-def calc_rot_via_gazetas_1991(sl, fd, a0, ip_axis='width', saturated=False, f_contact=1.0):
+def calc_rot_via_gazetas_1991(sl, fd, a0, ip_axis, saturated=False, f_contact=1.0):
     v_la = 3.4 / (_pi * (1 - sl.poissons_ratio)) * sl.get_shear_vel(saturated=saturated)
     if saturated:
         rho = sl.unit_sat_mass
@@ -159,7 +159,10 @@ def calc_rot_via_gazetas_1991(sl, fd, a0, ip_axis='width', saturated=False, f_co
                 dw = min(fd.height, fd.depth) * f_contact
             # effective wall contact inertia around base of footing (I=b*h3/12 + A*d^2)
             i_wce = (b * dw ** 3 / 12 + (b * dw) * (dw / 2) ** 2) * 2
-            c_1 = 0.25 + 0.65 * np.sqrt(a0) * (dw / fd.depth) ** (-a0 / 2) * (fd.depth / b) ** (-0.25)
+            if dw == 0:
+                c_1 = 0.25
+            else:
+                c_1 = 0.25 + 0.65 * np.sqrt(a0) * (dw / fd.depth) ** (-a0 / 2) * (fd.depth / b) ** (-0.25)
             c_emb = rho * v_la * i_wce * c_1
         else:
             c_emb = 0

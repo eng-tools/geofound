@@ -207,12 +207,15 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, a0, ip_axis='width', saturated=False
             dw = min(fd.height, fd.depth) * f_contact
         # effective wall contact inertia around base of footing (I=b*h3/12 + A*d^2) x2 since front and back wall
         i_wce = (l_oop * dw ** 3 / 12 + (l_oop * dw) * (dw / 2) ** 2) * 2
-        c_1 = 0.25 + 0.65 * np.sqrt(a0) * (dw / fd.depth) ** (-a0 / 2)
+        if dw == 0.0:
+            c_1 = 0.25
+        else:
+            c_1 = 0.25 + 0.65 * np.sqrt(a0) * (dw / fd.depth) ** (-a0 / 2)
         c_emb = rho * v_la * i_wce * c_1
     else:
         c_emb = 0
 
-    return c_static * f_dyn + c_emb
+    return c_static_surf * f_dyn + c_emb
 
 
 def calc_tors_via_gazetas_1991(sl, fd, a0, saturated=False):

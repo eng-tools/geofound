@@ -12,7 +12,7 @@ def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, saturated=False):
     else:
         rho = sl.unit_dry_mass
     l = max([fd.length, fd.width]) / 2
-    b = max([fd.length, fd.width]) / 2
+    b = min([fd.length, fd.width]) / 2
 
     f_dyn = tdc.get_cz_gazetas_v_lte_0p4(a0, l / b)
     if sl.poissons_ratio > 0.4:
@@ -222,7 +222,7 @@ def calc_tors_via_gazetas_1991(sl, fd, a0, saturated=False):
     else:
         rho = sl.unit_dry_mass
     l = max([fd.length, fd.width]) / 2
-    b = max([fd.length, fd.width]) / 2
+    b = min([fd.length, fd.width]) / 2
     if a0:
         f_dyn = tdc.get_ct_gazetas(a0, l / b)
     else:

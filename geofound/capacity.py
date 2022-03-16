@@ -226,6 +226,8 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     Ref: http://geo.cv.nctu.edu.tw/foundation/download/
                             BearingCapacityOfFoundations.pdf
 
+    Note: Phi should be from plane strain (i.e. higher than if rectangular)
+
     :param sl: Soil object
     :param fd: Foundation object
     :param h_l: Horizontal load parallel to length
@@ -236,7 +238,7 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     :param verbose: verbosity
     :return: ultimate bearing stress
     """
-
+    ob = kwargs.get('ob', 0.0)
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
@@ -273,9 +275,14 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     fd.ng_factor = 2.0 * (fd.nq_factor + 1) * np.tan(sl.phi_r)
 
     # shape factors:
-    s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
-    s_q = 1 + fd_width / fd_length * np.tan(sl.phi_r)
-    s_g = max(1.0 - 0.4 * fd_width / fd_length, 0.6)  # add limit of 0.6 based on Vesic
+    if fd_length is None:
+        s_c = 1.0
+        s_q = 1.0
+        s_g = 1.0
+    else:
+        s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
+        s_q = 1 + fd_width / fd_length * np.tan(sl.phi_r)
+        s_g = max(1.0 - 0.4 * fd_width / fd_length, 0.6)  # add limit of 0.6 based on Vesic
     # depth factors:
     if fd.depth / fd_width > 1:
         k = np.arctan(fd.depth / fd_width)
@@ -286,9 +293,12 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     d_g = 1.0
 
     # load inclination factors
-    m__b = (2.0 + fd_width / fd_length) / (1 + fd_width / fd_length)
-    m_l = (2.0 + fd_length / fd_width) / (1 + fd_length / fd_width)
-    m = np.sqrt(m__b ** 2 + m_l ** 2)
+    if fd_length is None:
+        m = 2.0
+    else:
+        m_b = (2.0 + fd_width / fd_length) / (1 + fd_width / fd_length)
+        m_l = (2.0 + fd_length / fd_width) / (1 + fd_length / fd_width)
+        m = np.sqrt(m_b ** 2 + m_l ** 2)
 
     if sl.phi_r == 0:
         i_q = 1.0
@@ -339,7 +349,7 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     elif gwl > fd.depth + fd_width:
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.unit_dry_weight
-
+    q_d += ob
     if verbose:
         log("Nc: ", fd.nc_factor)
         log("N_qV: ", fd.nq_factor)
@@ -457,6 +467,8 @@ def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, 
     Calculates the foundation capacity according Hansen (1970)
     Ref: http://bestengineeringprojects.com/civil-projects/
     hansens-bearing-capacity-theory/
+
+    Note: Phi should be from plane strain (i.e. higher than if rectangular)
 
     :param sl: Soil object
     :param fd: Foundation object
@@ -605,6 +617,7 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_ax
     :param verbose: verbosity
     :return: ultimate bearing stress
     """
+    ob = kwargs.get('ob', 0.0)
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
@@ -689,6 +702,7 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_ax
     elif gwl > fd.depth + fd_width:
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.unit_dry_weight
+    q_d += ob  # add overburden
 
     if verbose:
         log("Nc: ", fd.nc_factor)
@@ -860,6 +874,8 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
 
      The method combines load factors from Bolton (1979) and shape factors from Lyamin et al. (2006)
 
+    Note: if using BH1979 then phi should be from plane strain
+
     :param sl: Soil object
     :param fd: Foundation object
     :param h_l: Horizontal load parallel to length
@@ -877,6 +893,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     h_eff_b = kwargs.get("h_eff_b", 0)
     h_eff_l = kwargs.get("h_eff_l", 0)
     ip_axis_2d = kwargs.get('ip_axis_2d', None)
+    ob = kwargs.get('ob', 0.0)  # overburden pressure
 
     temp_fd_length = fd.length
     temp_fd_width = fd.width
@@ -926,8 +943,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     if sl.phi_r == 0:
         fd.nc_factor = 5.14
     else:
-        fd.nc_factor = (fd.nq_factor - 1) * np.arctan(sl.phi_r)  # Eq 10.11 (application of Coquot's principle)
-
+        fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)  # Eq 10.11 (application of Coquot's principle)
     d_o_b_min = 2.0  # Range from Lyamin is 0-2
     # shape factors:
     if ip_axis_2d is not None:
@@ -966,7 +982,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     d_c = 1.0 + 0.27 * np.sqrt(d_o_b)
 
     # stress at footing base:
-    q_d = sl.unit_dry_weight * fd.depth
+    q_d = sl.unit_dry_weight * fd.depth + ob
 
     if verbose:
         log("width_eff: ", width_eff)

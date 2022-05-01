@@ -1101,7 +1101,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     return fd
 
 
-def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, ip_axis_2d=None, **kwargs):
+def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=None, **kwargs):
     """
     Determine the size of a footing given an aspect ratio and a load
 
@@ -1119,6 +1119,8 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis='length', verbose=0, ip_axis_2
     new_fd.width = fd.width
     new_fd.depth = fd.depth
     new_fd.length = fd.length
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
     prev_ub_len = getattr(fd, ip_axis)
     q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose-1), ip_axis_2d=ip_axis_2d)
     if ip_axis_2d is None:

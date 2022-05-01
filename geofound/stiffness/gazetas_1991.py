@@ -5,7 +5,7 @@ from geofound import tables_of_dyn_coefficients as tdc
 _pi = 3.14159265359
 
 
-def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1.0, h_rigid=None, **kwargs):
+def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, h_rigid=None, **kwargs):
     """
     Assumes out-of-plane is infinite, stiffness is returned as a per metre length
 
@@ -26,6 +26,8 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1
     -------
 
     """
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
     k_strip = _pi * sl.g_mod * b ** 2 / (2 * (1 - sl.poissons_ratio))
@@ -48,7 +50,7 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1
     return k_strip * n_emb * f_dyn * n_rigid
 
 
-def calc_horz_via_gazetas_1991(sl, fd, ip_axis, axis=None, a0=0.0, f_contact=1.0):
+def calc_horz_via_gazetas_1991(sl, fd, ip_axis, a0=0.0, f_contact=1.0):
     """
     Calculate the shear stiffness for translation along an axis.
 
@@ -58,8 +60,6 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis, axis=None, a0=0.0, f_contact=1.0
     fd: Foundation object
     ip_axis: str
         The axis that is in the plane of deformation
-    axis: str
-     The axis which it should be computed around (if not None, then ip_axis is ignored)
     a0: float
         dynamic factor
     f_contact: float
@@ -69,8 +69,6 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis, axis=None, a0=0.0, f_contact=1.0
     -------
 
     """
-    if axis is not None:
-        ip_axis = axis
     n_emb = 1.0
     if fd.length >= fd.width:
         len_dominant = True
@@ -111,11 +109,11 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis, axis=None, a0=0.0, f_contact=1.0
     return k_shear * n_emb * f_dyn
 
 
-def calc_shear_via_gazetas_1991(sl, fd, ip_axis='width', axis=None, a0=0.0, f_contact=1.0):
-    return calc_horz_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, f_contact=f_contact)
+def calc_shear_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0):
+    return calc_horz_via_gazetas_1991(sl, fd, ip_axis=ip_axis, a0=a0, f_contact=f_contact)
 
 
-def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1.0, h_rigid=None):
+def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, h_rigid=None):
     """
     Assumes out-of-plane is infinite, stiffness is returned as a per metre length
 
@@ -125,8 +123,6 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
     fd: Foundation object
     ip_axis: str
         The axis that is in the plane of deformation
-    axis: str
-     The axis which it should be computed around (if not None, then ip_axis is ignored)
     a0: float
         dynamic factor
     f_contact: float
@@ -138,11 +134,7 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
     """
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
-    k_strip = 2.0 * sl.g_mod / (2 - sl.poissons_ratio)
-    if h_rigid:
-        n_rigid = 1 + 2 * b / h_rigid
-    else:
-        n_rigid = 1
+    k_h_0_strip = 2.0 * sl.g_mod / (2 - sl.poissons_ratio)
     if a0:
         f_dyn = tdc.get_ky_gazetas(a0, 1000)
     else:
@@ -161,7 +153,7 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
         n_rigid = 1 + 2.0 * b / h_rigid
     else:
         n_rigid = 1
-    return k_strip * n_emb * f_dyn * n_rigid
+    return k_h_0_strip * n_emb * f_dyn * n_rigid
 
 
 def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0, h_rigid=None):
@@ -184,7 +176,7 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0, h_rigid=None):
     v = sl.poissons_ratio
     l = max([fd.length * 0.5, fd.width * 0.5])
     b = min([fd.length * 0.5, fd.width * 0.5])
-    k_v_0 = 2 * sl.g_mod * l / (1 - v) * (0.73 + 1.54 * (b / l) ** 0.75)
+    k_n_0 = 2 * sl.g_mod * l / (1 - v) * (0.73 + 1.54 * (b / l) ** 0.75)
 
     if a0:
         if sl.poissons_ratio <= 0.4:
@@ -228,10 +220,10 @@ def calc_vert_via_gazetas_1991(sl, fd, a0=None, f_contact=1.0, h_rigid=None):
     else:
         n_rigid = 1
 
-    return k_v_0 * n_emb * f_dyn_surf * f_dyn_emb * n_rigid
+    return k_n_0 * n_emb * f_dyn_surf * f_dyn_emb * n_rigid
 
 
-def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=1.0, h_rigid=None, **kwargs):
+def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, h_rigid=None, **kwargs):
     """
     Vertical stiffness per metre of a footing with infinite out-of-plane length
 
@@ -251,10 +243,12 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
     -------
 
     """
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
     v = sl.poissons_ratio
-    k_strip = 0.73 * sl.g_mod / (1 - v)
+    k_n_0_strip = 0.73 * sl.g_mod / (1 - v)
     if a0:
         lob = 1000
         if sl.poissons_ratio <= 0.4:
@@ -288,7 +282,7 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis='width', a0=0.0, f_contact=
         n_rigid = 1 + 3.5 * b / h_rigid
     else:
         n_rigid = 1
-    return k_strip * n_emb * f_dyn_surf * f_dyn_emb * n_rigid
+    return k_n_0_strip * n_emb * f_dyn_surf * f_dyn_emb * n_rigid
 
 
 def get_vert_gazetas_1991(sl, fd, a0):
@@ -296,16 +290,25 @@ def get_vert_gazetas_1991(sl, fd, a0):
     return calc_vert_via_gazetas_1991(sl, fd, a0)
 
 
-def get_rot_via_gazetas_1991(sl, fd, ip_axis="length", a0=0.0, f_contact=1.0, **kwargs):
+def get_rot_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, **kwargs):
     gf.exceptions.deprecation('get_rot_via_gazetas_1991')
     return calc_rot_via_gazetas_1991(sl, fd, ip_axis=ip_axis, a0=a0, f_contact=f_contact, **kwargs)
 
-def calc_rotational_via_gazetas_1991(sl, fd, ip_axis=None, axis=None, a0=0.0, f_contact=1.0, **kwargs):
-    return calc_rot_via_gazetas_1991(sl, fd, ip_axis=ip_axis, axis=axis, a0=a0, f_contact=f_contact, **kwargs)
+def calc_rotational_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, **kwargs):
+    return calc_rot_via_gazetas_1991(sl, fd, ip_axis=ip_axis, a0=a0, f_contact=f_contact, **kwargs)
 
 
 def calc_norm_stiff_of_rect_via_gazetas_1991(loop_o_lip):
-    """lob=length in-plane divided by length out-of-plane"""
+    """
+    Calculate the normalised rotational to vertical stiffness ratio
+
+    norm_k = K_M / (K_N * L_ip ** 2)
+
+    Parameters
+    ----------
+    loop_o_lip: float
+        Length in-plane divided by length out-of-plane
+    """
     length = 1
     width = loop_o_lip
     depth = 0.0
@@ -323,11 +326,7 @@ def calc_norm_stiff_of_rect_via_gazetas_1991(loop_o_lip):
     #                 14.88 * loop_o_lip ** 0.6 / (0.73 + 1.55 * loop_o_lip ** 0.75))
 
 
-def calc_a0(period, l_short, shear_vel):
-    return (2 * _pi / period) * (l_short / 2) / shear_vel
-
-
-def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, axis=None, a0=0.0, f_contact=1.0, **kwargs):
+def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, **kwargs):
     """
     Rotation stiffness of foundation from Gazetas (1991) and Mylonakis et al. (2006)
 
@@ -337,8 +336,6 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, axis=None, a0=0.0, f_contact
     fd: Foundation object
     ip_axis: str
         The axis that is in the plane of deformation
-    axis: str
-     The axis which it should be computed around (if not None, then ip_axis is ignored)
     a0: float
         dynamic factor
     f_contact: float
@@ -355,11 +352,6 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, axis=None, a0=0.0, f_contact
         gf.models.check_required(fd, ["length", "width", "depth"])
     if ip_axis is None:
         ip_axis = fd.ip_axis
-    if axis is not None:
-        if axis == 'length':
-            ip_axis = 'width'
-        else:
-            ip_axis = 'length'
 
     if fd.length >= fd.width:
         len_dominant = True

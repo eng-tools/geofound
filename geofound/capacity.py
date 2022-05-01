@@ -80,7 +80,7 @@ def calc_phi_peak_fd_salgado_2008(phi_c_txc, p_eff, d_r, l_o_b=None, fd=None, q=
         l_o_b = max(fd.length / fd.width, fd.width / fd.length)
     i_r = d_r * (q - np.log(100 * p_eff / p_atm)) - r  # From Salgado 2000 (adapted to give consistent units)
     # i_r = sl.relative_density * (q - np.log(p_eff)) - r
-    a_psi = np.clip(1. / 3 * (l_o_b + 8), 3, 5)
+    a_psi = np.clip(1. / 3 * (l_o_b + 8), 3, 5)  # This is originally from Perkins and Madson (2000)
     return phi_c_txc + a_psi * i_r
 
 
@@ -196,7 +196,7 @@ def calc_m_eff_bc_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
     return sigma_meff
 
 
-def calc_m_eff_bc_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None):
+def calc_m_eff_bc_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None, min_lim=True):
     # for bearing capacity
     if ip_axis_2d is None:
         if fd.length > fd.width:
@@ -208,14 +208,17 @@ def calc_m_eff_bc_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None):
         l_o_b = fd_length / fd_width
     elif ip_axis_2d == 'length':
         fd_width = fd.length
-        l_o_b = 10  # unknown?
+        l_o_b = 7  # pg 526 PM2000
     elif ip_axis_2d == 'width':
         fd_width = fd.width
-        l_o_b = 10
+        l_o_b = 7
     else:
         raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
     a = 1. / 6 * (0.52 - 0.04 * l_o_b)
-    sigma_meff = max(1. / 6 * (0.52 - 0.04 * l_o_b) * q_demand, q_demand / 25)
+    if min_lim:
+        sigma_meff = max(1. / 6 * (0.52 - 0.04 * l_o_b) * q_demand, q_demand / 25)
+    else:
+        sigma_meff = 1. / 6 * (0.52 - 0.04 * l_o_b) * q_demand
     return sigma_meff
 
 

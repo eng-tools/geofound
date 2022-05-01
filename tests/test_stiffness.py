@@ -1,6 +1,8 @@
 import geofound
 import numpy as np
 
+import geofound.stiffness.gazetas_1991
+
 
 def test_rotation():
     length = 3
@@ -27,14 +29,14 @@ def test_stiffness_ratio_formula():
     sl.poissons_ratio = 0.3
     fd = geofound.create_foundation(length, width, depth)
     ip_axis = 'length'
-    k_rot = geofound.stiffness.calc_rot_via_gazetas_1991(sl, fd, ip_axis)
-    k_vert = geofound.stiffness.calc_vert_via_gazetas_1991(sl, fd)
+    k_rot = geofound.stiffness.gazetas_1991.calc_rot_via_gazetas_1991(sl, fd, ip_axis)
+    k_vert = geofound.stiffness.gazetas_1991.calc_vert_via_gazetas_1991(sl, fd)
     n_rat = k_rot / k_vert / fd.length ** 2
     loop_o_lip = fd.width / fd.length
     loop_o_lip = 1. / loop_o_lip
     k1 = 1.24 / loop_o_lip * (1 + 5 * loop_o_lip) / (0.73 + 1.55 / loop_o_lip ** 0.75)
     k2 = 7.44 * loop_o_lip ** 0.6 / (0.73 + 1.55 * loop_o_lip ** 0.75)
-    n_rat1 = geofound.stiffness.calc_norm_stiff_of_rect_via_gazetas_1991(loop_o_lip=fd.width / fd.length)
+    n_rat1 = geofound.stiffness.gazetas_1991.calc_norm_stiff_of_rect_via_gazetas_1991(loop_o_lip=fd.width / fd.length)
     assert np.isclose(n_rat, n_rat1), (n_rat, n_rat1)
 
 

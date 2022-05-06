@@ -877,7 +877,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
 
      The method combines load factors from Bolton (1979) and shape factors from Lyamin et al. (2006)
 
-    Note: if using BH1979 then phi should be from plane strain
+    Note: phi should be from triaxial comp. however, if using BH1979 then phi should be from plane strain
 
     :param sl: Soil object
     :param fd: Foundation object

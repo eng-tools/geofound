@@ -124,7 +124,7 @@ def calc_vert_via_pais_1988(sl, fd, a0=0):
     return beta
 
 
-def calc_horz_via_pais_1988(sl, fd, ip_axis, a0=0.0):
+def calc_horz_via_pais_1988(sl, fd, ip_axis=None, a0=0.0):
     """
     Calculate the horizontal damping for translation along an axis from Pais and Kausel (1988).
 
@@ -149,6 +149,10 @@ def calc_horz_via_pais_1988(sl, fd, ip_axis, a0=0.0):
         len_dominant = False
         l = fd.width * 0.5
         b = fd.length * 0.5
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
+    if ip_axis is None:
+        raise ValueError('ip_axis must be set')
 
     if (ip_axis == 'length' and len_dominant) or (ip_axis == 'width' and not len_dominant):
         x_axis = True  # Direction of l

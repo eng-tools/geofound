@@ -37,3 +37,9 @@ def calc_stress_under_centre(length, width, depth, stress):
     n = width / depth / 2
     i = calc_fadums_from_m_and_n(m, n) * 4
     return stress * i
+
+
+def calc_stress_under_strip_footing(width, depth, stress):
+    # See pg 163 in Salgado
+    theta = np.arctan(width / 2 / depth)
+    return stress / (2 * np.pi) * (4 * theta + 2 * np.sin(2 * theta))

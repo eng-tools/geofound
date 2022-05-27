@@ -63,7 +63,7 @@ def calc_phi_peak_bolton_1986(phi_c_txc, p_eff, d_r, k=2, q=10, r=1, p_atm=101.0
     return phi_c_txc + a_psi * i_r
 
 
-def calc_phi_peak_fd_salgado_2008(phi_c_txc, p_eff, d_r, l_o_b=None, fd=None, q=10, r=1, p_atm=101.0e3):
+def calc_phi_peak_fd_salgado_2008(phi_c_txc, p_eff, d_r, l_o_b=None, fd=None, q=10, r=1, p_atm=101.0e3, phi_c_ps_diff=0.0):
     """
 
     :param phi_c_txc: float
@@ -81,7 +81,8 @@ def calc_phi_peak_fd_salgado_2008(phi_c_txc, p_eff, d_r, l_o_b=None, fd=None, q=
     i_r = d_r * (q - np.log(100 * p_eff / p_atm)) - r  # From Salgado 2000 (adapted to give consistent units)
     # i_r = sl.relative_density * (q - np.log(p_eff)) - r
     a_psi = np.clip(1. / 3 * (l_o_b + 8), 3, 5)  # This is originally from Perkins and Madson (2000)
-    return phi_c_txc + a_psi * i_r
+    phi_c = phi_c_txc + (a_psi - 3) / 5 * phi_c_ps_diff
+    return phi_c + a_psi * i_r
 
 
 def calc_phi_bc_strip_loukidis_2019(phi_c_txc, sl, fd, ip_axis_2d, p_atm=101.0e3, gwl=1e6):

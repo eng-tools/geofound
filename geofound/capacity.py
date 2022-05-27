@@ -613,6 +613,8 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_ax
     Calculates the foundation capacity according Meyerhoff (1963)
     http://www.engs-comp.com/meyerhof/index.shtml
 
+    Phi should be appropriate for the shape (not plane strain phi, i.e. should be lower if square than strip)
+
     :param sl: Soil object
     :param fd: Foundation object
     :param h_l: Horizontal load parallel to length
@@ -878,7 +880,8 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
 
      The method combines load factors from Bolton (1979) and shape factors from Lyamin et al. (2006)
 
-    Note: phi should be from triaxial comp. however, if using BH1979 then phi should be from plane strain
+    Note: if using BH1979 then phi should be from plane strain
+    Else: Phi should be appropriate for the shape (not plane strain phi, i.e. should be lower if square than strip)
 
     :param sl: Soil object
     :param fd: Foundation object
@@ -894,6 +897,7 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
     use_bh1970_factors = kwargs.get('use_bh1970_factors', 0)
+    use_loukidis_and_salgado_2011 = kwargs.get('use_loukidis_and_salgado_2011', 0)
     h_eff_b = kwargs.get("h_eff_b", 0)
     h_eff_l = kwargs.get("h_eff_l", 0)
     ip_axis_2d = kwargs.get('ip_axis_2d', None)
@@ -941,8 +945,8 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     fd.ng_factor = (fd.nq_factor - 1) * np.tan(1.32 * sl.phi_r)  # Eq 10.13
     if use_bh1970_factors:
         fd.ng_factor = 1.5 * (fd.nq_factor - 1) * np.tan(sl.phi_r)  # BH1970 (Eq 10.12)
-    use_loukidis_and_salgado_2019 = 0
-    if use_loukidis_and_salgado_2019:
+
+    if use_loukidis_and_salgado_2011:
         fd.ng_factor = (fd.nq_factor - 0.6) * np.tan(1.33 * sl.phi_r)
     if sl.phi_r == 0:
         fd.nc_factor = 5.14
@@ -1518,7 +1522,6 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, ip_axis_2d=None, verbose=0):
     return fd.q_ult
 
 
-
 def calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max):
     c = 0.22
     t = qv_max
@@ -1537,6 +1540,7 @@ def calc_norm_shear_bs_via_butterfield_et_al_1994(n, r, qv_max, qm_max):
     s = qm_max
     v2 = (n - 1) * n * s * t / (np.sqrt(2 * c * r * s * t - r ** 2 * t ** 2 - s ** 2))
     return v2
+
 
 def calc_norm_shear_bs(n, m):
     c = 0.22
@@ -1566,8 +1570,6 @@ def run():
     # m = calc_norm_moment_bs_via_butterfield_et_al_1994(n, v, n_max, b, qv_max, qm_max)
     # plt.plot(n / n_max, m / (b * n_max))
     plt.show()
-
-
 
 
 if __name__ == '__main__':

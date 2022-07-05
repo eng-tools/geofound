@@ -971,19 +971,22 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
             d_o_b = min(fd.depth / width_eff, d_o_b_min)
             b_o_l = width_eff / length_eff
             if d_o_b == 0:
-                s_q = 1.0
+                s_q = 1.0  # note that equation does tend to 1 as d_o_b -> 0
             else:
                 s_q = 1 + (0.0952 * sl.phi - 1.60) * d_o_b ** (0.583 - 0.0079 * sl.phi) * b_o_l ** (1 - 0.15 * d_o_b)
-            s_g = 1 + (0.0345 * sl.phi -1.0611) * b_o_l
+            s_g = 1 + (0.0345 * sl.phi -1.0611) * b_o_l  # note: in original paper Lyamin 2007, Eq is 1 + (0.0336*phi - 1) * b_o_l
             s_c = calc_shape_factor_coh_salgado_et_al_2004(fd)  # Salgado (2008) Eq. 10.22
 
     # depth factors:
     d_o_b = min(d_o_b_min, fd.depth / width_eff)
-    if fd.depth == 0:
-        d_q = 1.0
+    
+    if use_bh1970_factors:
+        d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * d_o_b
     else:
-        if use_bh1970_factors:
-            d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * d_o_b
+        if fd.depth == 0:
+            d_q = 3.0  # note that it is inverse to d/b see paper Lyamin et al. (2007) Eq 14
+            d_o_bm = 0.01  # no limit set in paper but fits well to FEM results and matches well to figure 11 in Lyamin
+            d_q = 1 + (0.0044 * sl.phi + 0.356) * d_o_bm ** -0.28
         else:
             d_q = 1 + (0.0044 * sl.phi + 0.356) * d_o_b ** -0.28  # Lyamin et al. (2006) [Salgado Table 10-7]
     d_g = 1.0  # Both Lyamin and BH1970 (Table 10-7)

@@ -132,6 +132,8 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0
     -------
 
     """
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
     k_h_0_strip = 2.0 * sl.g_mod / (2 - sl.poissons_ratio)

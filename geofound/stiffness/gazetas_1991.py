@@ -354,6 +354,8 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, **kwa
         gf.models.check_required(fd, ["length", "width", "depth"])
     if ip_axis is None:
         ip_axis = fd.ip_axis
+    if ip_axis is None:
+        raise ValueError('ip_axis must be set')
 
     if fd.length >= fd.width:
         len_dominant = True

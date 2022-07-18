@@ -4,7 +4,7 @@ import numpy as np
 _pi = 3.14159265359
 
 
-def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, saturated=False):
+def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, h_rigid=None, saturated=False):
     v_s = sl.get_shear_vel(saturated=saturated)
     v_la = 3.4 / (_pi * (1 - sl.poissons_ratio)) * v_s
     if saturated:
@@ -27,6 +27,8 @@ def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, saturated=False):
         c_emb = rho * v_s * a_w
     else:
         c_emb = 0.0
+    if h_rigid:
+        f_h = 1  # TODO: add - needs t_est.
     return rho * v_la * fd.area * f_dyn + c_emb
 
 

@@ -50,7 +50,7 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0,
     return k_strip * n_emb * f_dyn * n_rigid
 
 
-def calc_horz_via_gazetas_1991(sl, fd, ip_axis, a0=0.0, f_contact=1.0):
+def calc_horz_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0):
     """
     Calculate the shear stiffness for translation along an axis.
 
@@ -69,6 +69,8 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis, a0=0.0, f_contact=1.0):
     -------
 
     """
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
     n_emb = 1.0
     if fd.length >= fd.width:
         len_dominant = True
@@ -78,6 +80,10 @@ def calc_horz_via_gazetas_1991(sl, fd, ip_axis, a0=0.0, f_contact=1.0):
         len_dominant = False
         l = fd.width * 0.5
         b = fd.length * 0.5
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
+    if ip_axis not in ['length', 'width']:
+        raise ValueError(f'Must set ip_axis to either "length" or "width" not {ip_axis}')
 
     if (ip_axis == 'length' and len_dominant) or (ip_axis == 'width' and not len_dominant):
         x_axis = True  # Direction of l
@@ -369,6 +375,10 @@ def calc_rot_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0, **kwa
         b = fd.length * 0.5
         i_by = fd.i_ll
         i_bx = fd.i_ww
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
+    if ip_axis not in ['length', 'width']:
+        raise ValueError(f'Must set ip_axis to either "length" or "width" not {ip_axis}')
     if (ip_axis == 'width' and len_dominant) or (ip_axis == 'length' and not len_dominant):
         xx_axis = True  # weaker rotation (rotation about longest length)
     else:

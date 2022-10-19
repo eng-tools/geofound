@@ -123,7 +123,8 @@ def calc_phi_bc_strip_loukidis_2019(phi_c_txc, sl, fd, ip_axis_2d, p_atm=101.0e3
     return phi_c_txc + ((17.6 * sl.relative_density - 8.8) - 2.44 * np.log(fd_width * unit_weight / p_atm))
 
 
-def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=101.0e3, gwl=1e6):
+def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=101.0e3, gwl=1e6, ob=0.0):
+
     if ip_axis_2d is None:
         if fd.length > fd.width:
             fd_length = fd.length
@@ -151,8 +152,7 @@ def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=1
         average_unit_bouy_weight = sl.unit_bouy_weight + (
                 ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
         unit_weight = average_unit_bouy_weight
-
-    sigma_meff = 20 * p_atm * (unit_weight * fd_width / p_atm) ** 0.7 * (1 - 0.32 * b_o_l)
+    sigma_meff = 20 * p_atm * ((unit_weight * fd_width + ob) / p_atm) ** 0.7 * (1 - 0.32 * b_o_l)
     return sigma_meff
 
 
@@ -990,9 +990,9 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     if use_bh1970_factors:
         d_q = 1 + 2 * np.tan(sl.phi_r) * (1 - np.sin(sl.phi_r)) ** 2 * d_o_b
     else:
-        if fd.depth == 0:
+        d_o_bm = 0.01  # no limit set in paper but fits well to FEM results and matches well to figure 11 in Lyamin
+        if d_o_b <= d_o_bm:
             # d_q = 3.0  # note that it is inverse to d/b see paper Lyamin et al. (2007) Eq 14
-            d_o_bm = 0.01  # no limit set in paper but fits well to FEM results and matches well to figure 11 in Lyamin
             d_q = 1 + (0.0044 * sl.phi + 0.356) * d_o_bm ** -0.28
         else:
             d_q = 1 + (0.0044 * sl.phi + 0.356) * d_o_b ** -0.28  # Lyamin et al. (2006) [Salgado Table 10-7]
@@ -1116,7 +1116,7 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     return fd
 
 
-def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=None, **kwargs):
+def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=None, method='vesic', ob=0.0):
     """
     Determine the size of a footing given an aspect ratio and a load
 
@@ -1127,7 +1127,6 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=No
     :param verbose: verbosity
     :return: a Foundation object
     """
-    method = kwargs.get("method", 'vesic')
 
     # Find approximate size
     new_fd = models.RaftFoundation()
@@ -1137,7 +1136,7 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=No
     if ip_axis is None:
         ip_axis = fd.ip_axis
     prev_ub_len = getattr(fd, ip_axis)
-    q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d)
+    q_ult = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, ob=ob)
     if ip_axis_2d is None:
         area = fd.area
     else:
@@ -1151,7 +1150,7 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=No
     prev_q = q_ult
     for i in range(50):
         setattr(new_fd, ip_axis, est_len)
-        q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d)
+        q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, ob=ob)
         if ip_axis_2d is None:
             area = new_fd.area
         else:
@@ -1182,13 +1181,15 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
     :param verbose: verbosity
     :return: a Foundation object
     """
-    sl_org = sl.phi
+    sl_org_phi = sl.phi
     # Find approximate size
     new_fd = sm.RaftFoundation()
     new_fd.width = fd.width
     new_fd.depth = fd.depth
     new_fd.length = fd.length
-    if ip_axis is None:
+    if ip_axis_2d:
+        ip_axis = ip_axis_2d
+    elif ip_axis is None:
         ip_axis = fd.ip_axis
     prev_ub_len = getattr(fd, ip_axis)
     p_eff = calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=ip_axis_2d)
@@ -1196,11 +1197,12 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
         l_o_b = new_fd.llong / new_fd.lshort
     else:
         l_o_b = 7
-    kwargs = {}
+    pkwawrgs = {}
     if hasattr(sl, 'phi_c_ps_diff'):
-        kwargs['phi_c_ps_diff'] = sl.phi_c_ps_diff
-    sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **kwargs)
-    q_ult = capacity_salgado_2008(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d)
+        pkwargs['phi_c_ps_diff'] = sl.phi_c_ps_diff
+    sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwawrgs)
+
+    q_ult = capacity_salgado_2008(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
     if ip_axis_2d is None:
         area = fd.area
     else:
@@ -1215,16 +1217,16 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
     for i in range(50):
         setattr(new_fd, ip_axis, est_len)
 
-        p_eff = calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=ip_axis_2d)
+        p_eff = calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, new_fd, ip_axis_2d=ip_axis_2d, **kwargs)
         if ip_axis_2d is None:
             l_o_b = new_fd.llong / new_fd.lshort
         else:
             l_o_b = 7
-        kwargs = {}
+        pkwawrgs = {}
         if hasattr(sl, 'phi_c_ps_diff'):
-            kwargs['phi_c_ps_diff'] = sl.phi_c_ps_diff
-        sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **kwargs)
-        q = capacity_salgado_2008(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d)
+            pkwawrgs['phi_c_ps_diff'] = sl.phi_c_ps_diff
+        sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwawrgs)
+        q = capacity_salgado_2008(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
         if ip_axis_2d is None:
             area = new_fd.area
         else:
@@ -1241,7 +1243,7 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
     if i == 99:
         raise ValueError(init_fos, curr_fos, est_len, prev_lb_len, prev_ub_len)
     phi_p = sl.phi
-    sl.phi = sl_org
+    sl.phi = sl_org_phi
     return est_len, phi_p
 
 

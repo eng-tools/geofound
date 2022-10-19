@@ -33,6 +33,10 @@ def calc_rot_via_pais_1988(sl, fd, ip_axis=None, a0=0.0, **kwargs):
         len_dominant = False
         l = fd.width * 0.5
         b = fd.length * 0.5
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
+    if ip_axis not in ['length', 'width']:
+        raise ValueError(f'Must set ip_axis to either "length" or "width" not {ip_axis}')
     if (ip_axis == 'width' and len_dominant) or (ip_axis == 'length' and not len_dominant):
         xx_axis = True  # weaker rotation (rotation about longest length)
     else:

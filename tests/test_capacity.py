@@ -3,7 +3,7 @@ import numpy as np
 from geofound import models
 
 
-def test_vesics():
+def test_vesic():
     """
     values from: Gunaratne, Manjriker. 2006. "Spread Footings: Analysis and Design."
     """
@@ -15,7 +15,7 @@ def test_vesics():
     unit_dry_weight = 17
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
-    geofound.capacity_vesics_1975(sl, fd, verbose=0)
+    geofound.capacity_vesic_1975(sl, fd, verbose=0)
     assert np.isclose(fd.nc_factor, 46.1, rtol=0.001)
     assert np.isclose(fd.nq_factor, 33.3, rtol=0.001)
     assert np.isclose(fd.ng_factor, 48.0, rtol=0.001)
@@ -174,7 +174,7 @@ def test_hansen():
     unit_dry_weight = 17  # kN/m3
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
-    geofound.capacity_hansen_1970(sl, fd, verbose=0)
+    geofound.capacity_brinch_hansen_1970(sl, fd, verbose=0)
     assert np.isclose(fd.nc_factor, 10.97, rtol=0.001)
     assert np.isclose(fd.nq_factor, 3.94, rtol=0.01)
     assert np.isclose(fd.ng_factor, 1.18, rtol=0.01)
@@ -184,9 +184,9 @@ def test_hansen():
 def test_nzs_vm4():
     """
     values from: NZ Building code Clause B1 VM4 example in Appendix C
-    -Retain wall example load case 1 (page 71)
+    - Retain wall example load case 1 (page 71)
     """
-    length = 10000  # Actually should be a strip
+    length = 1  # Actually should be a strip
     width = 2.65
     depth = 0.4
     phi = 0
@@ -194,16 +194,26 @@ def test_nzs_vm4():
     unit_dry_weight = 18  # kN/m3
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
-    h_b = 70.45 * length
-    vertical_load = 131.29 * length
+    h_b = 70.47 * length
+    vertical_load = 154.87 * length
     h_eff_b = 1.44
-    loc_v_b = 0.848
-    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
-                                   verbose=0)
+    loc_v_b = 0.848  # X
+    e_applied = width / 2 - loc_v_b
+    mom_width = h_b * h_eff_b
+    e_mom = mom_width / vertical_load
+    e_width = e_mom - e_applied
+    geofound.capacity_nzs_vm4_2011(sl, fd, hload_width=h_b, nload=vertical_load, e_width=e_width,
+                                   ip_axis_2d='width', save_factors=1, verbose=0)
+    print('width_eff: ', fd.width_eff)
+    assert np.isclose(fd.width_eff, 2.29, rtol=0.01), fd.width_eff
     assert np.isclose(fd.nc_factor, 5.14, rtol=0.001)
     assert np.isclose(fd.nq_factor, 1.0, rtol=0.01)
     assert np.isclose(fd.ng_factor, 0.0, rtol=0.01)
-    assert np.isclose(fd.q_ult, 368.12, rtol=0.001)
+    assert np.isclose(fd.d_c, 1.07, rtol=0.01)
+    assert np.isclose(fd.s_c, 1.0, rtol=0.0001)
+    assert np.isclose(fd.i_c, 0.88, rtol=0.01)
+    assert np.isclose(fd.q_ult, 371.8227, rtol=0.001), fd.q_ult  # Note reported answer is 370.19 due to rounding
+
 
 
 def test_nzs_vm4_load_case_3():
@@ -223,7 +233,11 @@ def test_nzs_vm4_load_case_3():
     vertical_load = 154.87 * length
     h_eff_b = 1.78
     loc_v_b = 0.854
-    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
+    e_applied = width / 2 - loc_v_b
+    mom_width = h_b * h_eff_b
+    e_mom = mom_width / vertical_load
+    e_width = e_mom - e_applied
+    geofound.capacity_nzs_vm4_2011(sl, fd, hload_width=h_b, nload=vertical_load, e_width=e_width,
                                    verbose=0)
     assert np.isclose(fd.nc_factor, 5.14, rtol=0.001)
     assert np.isclose(fd.nq_factor, 1.0, rtol=0.01)
@@ -250,9 +264,12 @@ def test_nzs_vm4_load_case_5():
     vertical_load = 144.48 * length
     h_eff_b = 1.44
     loc_v_b = 0.813
-    geofound.capacity_nzs_vm4_2011(sl, fd, h_b=h_b, vertical_load=vertical_load, h_eff_b=h_eff_b, loc_v_b=loc_v_b,
+    e_applied = width / 2 - loc_v_b
+    mom_width = h_b * h_eff_b
+    e_mom = mom_width / vertical_load
+    e_width = e_mom - e_applied
+    geofound.capacity_nzs_vm4_2011(sl, fd, hload_width=h_b, nload=vertical_load, e_width=e_width,
                                    verbose=0)
-
     assert np.isclose(fd.nc_factor, 20.72, rtol=0.001)
     assert np.isclose(fd.nq_factor, 10.66, rtol=0.01)
     assert np.isclose(fd.ng_factor, 9.01, rtol=0.01)
@@ -272,7 +289,7 @@ def test_from_encn452_2013():
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
     fd = geofound.create_foundation(length, width, depth)
     geofound.capacity_terzaghi_1943(sl, fd, verbose=0)
-    geofound.capacity_vesics_1975(sl, fd, verbose=0)
+    geofound.capacity_vesic_1975(sl, fd, verbose=0)
     assert np.isclose(fd.q_ult, 298.0, rtol=0.001)
 
 
@@ -311,7 +328,7 @@ def test_calc_crit_length():
     assert np.isclose(crit_len, 2.765625, rtol=0.001), crit_len
 
 
-def test_very_short_foundation_w_vesics():
+def test_very_short_foundation_w_vesic():
     length = 0.265  # actually a strip in
     width = 4.7
     depth = 2.24
@@ -324,8 +341,8 @@ def test_very_short_foundation_w_vesics():
     unit_dry_weight = 14943.15
     sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
 
-    q_ult = geofound.capacity_vesics_1975(sl, fd)
-    q_ulto = geofound.capacity_vesics_1975(sl, fdo)
+    q_ult = geofound.capacity_vesic_1975(sl, fd)
+    q_ulto = geofound.capacity_vesic_1975(sl, fdo)
     assert np.isclose(q_ult, q_ulto, rtol=0.001)
 
 

@@ -4,7 +4,7 @@ import numpy as np
 _pi = 3.14159265359
 
 
-def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, h_rigid=None, saturated=False):
+def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, h_rigid=None, saturated=False, t_est=None):
     v_s = sl.get_shear_vel(saturated=saturated)
     v_la = 3.4 / (_pi * (1 - sl.poissons_ratio)) * v_s
     if saturated:
@@ -28,8 +28,15 @@ def calc_vert_via_gazetas_1991(sl, fd, a0, f_contact=1.0, h_rigid=None, saturate
     else:
         c_emb = 0.0
     if h_rigid:
-        f_h = 1  # TODO: add - needs t_est.
-    return rho * v_la * fd.area * f_dyn + c_emb
+        f_crit = v_la / (4 * h_rigid)
+        f_s = v_s / (4 * h_rigid)
+        f_1 = 1 / t_est
+        f_hrigid = 0.8 * (f_1 - f_crit) / 1.5 / f_crit
+        f_hrigid = np.clip(f_hrigid, 0.001, 0.8)  # See Gazetas table 15.3
+    else:
+        f_hrigid = 1.0
+
+    return rho * v_la * fd.area * f_dyn * f_hrigid + c_emb
 
 
 def calc_vert_strip_via_gazetas_1991(sl, fd, a0, ip_axis=None, f_contact=1.0, saturated=False):
@@ -62,7 +69,7 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, a0, ip_axis=None, f_contact=1.0, sa
     return rho * v_la * (l_ip * l_oop) * f_dyn + c_emb
 
 
-def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis, f_contact=1.0, saturated=False):
+def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis, f_contact=1.0, saturated=False, h_rigid=None, t_est=None):
     if saturated:
         rho = sl.unit_sat_mass
     else:
@@ -101,7 +108,15 @@ def calc_horz_via_gazetas_1991(sl, fd, a0, ip_axis, f_contact=1.0, saturated=Fal
         c_emb = rho * v_s * a_ws + rho * v_la * a_wc
     else:
         c_emb = 0.0
-    return rho * v_s * fd.area * f_dyn + c_emb
+    if h_rigid:
+        f_crit = v_la / (4 * h_rigid)
+        f_s = v_s / (4 * h_rigid)
+        f_1 = 1 / t_est
+        f_hrigid = (f_1 - f_s * 3 / 4) / (4. / 3 * f_s - 3 / 4 * f_s)
+        f_hrigid = np.clip(f_hrigid, 0.001, 1.0)  # See Gazetas table 15.3
+    else:
+        f_hrigid = 1.0
+    return rho * v_s * fd.area * f_dyn * f_hrigid + c_emb
 
 
 def calc_horz_strip_via_gazetas_1991(sl, fd, a0, ip_axis=None, f_contact=1.0, saturated=False):
@@ -131,7 +146,7 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, a0, ip_axis=None, f_contact=1.0, sa
     return rho * sl.get_shear_vel(saturated=saturated) * (l_ip * l_oop) * f_dyn + c_emb
 
 
-def calc_rot_via_gazetas_1991(sl, fd, a0, ip_axis, saturated=False, f_contact=1.0):
+def calc_rot_via_gazetas_1991(sl, fd, a0, ip_axis, saturated=False, f_contact=1.0, h_rigid=None, t_est=None):
     v_la = 3.4 / (_pi * (1 - sl.poissons_ratio)) * sl.get_shear_vel(saturated=saturated)
     if saturated:
         rho = sl.unit_sat_mass
@@ -189,7 +204,13 @@ def calc_rot_via_gazetas_1991(sl, fd, a0, ip_axis, saturated=False, f_contact=1.
                 c_emb = rho * v_la * i_wce * c_1
         else:
             c_emb = 0
-    return c_static_surf * f_dyn + c_emb  # Note that there is not f_emb_dyn term
+    if h_rigid:
+        f_crit = v_la / (4 * h_rigid)
+        f_1 = 1 / t_est
+        f_hrigid = np.where(f_1 < f_crit, 0.001, 1.0)  # See Gazetas table 15.3
+    else:
+        f_hrigid = 1.0
+    return c_static_surf * f_dyn * f_hrigid + c_emb  # Note that there is not f_emb_dyn term
 
 
 def calc_rot_strip_via_gazetas_1991(sl, fd, a0, ip_axis=None, saturated=False, f_contact=1.0):

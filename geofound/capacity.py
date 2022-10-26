@@ -224,7 +224,7 @@ def calc_m_eff_bc_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None, min
     return sigma_meff
 
 
-def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0,
+def capacity_vesic_1975(sl, fd, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0,
                         gwl=1e6, **kwargs):
     """
     Calculates the foundation capacity according Vesics(1975)
@@ -244,34 +244,49 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     :param verbose: verbosity
     :return: ultimate bearing stress
     """
-    ob = kwargs.get('ob', 0.0)
+
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
     if 'axis_inf' in kwargs:
         raise ValueError('use ip_axis_2d instead of axis_inf')
-    if ip_axis_2d is None:
-        if fd.length > fd.width:
-            fd_length = fd.length
-            fd_width = fd.width
+
+    hload_l = kwargs.setdefault('hload_length', 0)
+    hload_b = kwargs.setdefault('hload_width', 0)
+    nload = kwargs.setdefault('nload', 1)
+    horizontal_load = np.sqrt(hload_l ** 2 + hload_b ** 2)
+    # eccentricity due to offset vertical load, hload at height and direct moment.
+    e_length = kwargs.setdefault('e_length', 0)
+    e_width = kwargs.setdefault('e_width', 0)
+
+    ob = kwargs.get('ob', 0.0)
+
+    area_foundation = fd.length * fd.width
+    temp_fd_length = fd.length
+    temp_fd_width = fd.width
+    if ip_axis_2d is not None:
+        if ip_axis_2d == 'width':
+            area_foundation = temp_fd_width
+            temp_fd_length = temp_fd_width * 100
+        elif ip_axis_2d == 'length':
+            area_foundation = temp_fd_length
+            temp_fd_width = temp_fd_length * 100
         else:
-            fd_length = fd.width
-            fd_width = fd.length
-        area_foundation = fd_length * fd_width
-    elif ip_axis_2d == 'length':
-        fd_width = fd.length
-        fd_length = None
-        area_foundation = fd_width
-    elif ip_axis_2d == 'width':
-        fd_width = fd.width
-        fd_length = None
-        area_foundation = fd_width
+            raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
+
+    temp_width_eff = temp_fd_width - 2 * abs(e_width)
+    temp_length_eff = temp_fd_length - 2 * abs(e_length)
+    if temp_fd_length > temp_fd_width:
+        fd_length = temp_fd_length
+        fd_width = temp_fd_width
+        rev = 0
     else:
-        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
+        fd_length = temp_fd_width
+        fd_width = temp_fd_length
+        rev = 1
 
+    width_for_stress = min(temp_width_eff, temp_length_eff)
     c_a = 0.6 - 1.0 * sl.cohesion
-
-    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
 
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
     if sl.phi_r == 0:
@@ -280,8 +295,9 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
         fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
     fd.ng_factor = 2.0 * (fd.nq_factor + 1) * np.tan(sl.phi_r)
 
+    # Note: according to Salgado (2008) page 437 Vesic (1973) uses true dimensions for shape and depth factors
     # shape factors:
-    if fd_length is None:
+    if fd_length / fd_width > 10:
         s_c = 1.0
         s_q = 1.0
         s_g = 1.0
@@ -289,6 +305,7 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
         s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
         s_q = 1 + fd_width / fd_length * np.tan(sl.phi_r)
         s_g = max(1.0 - 0.4 * fd_width / fd_length, 0.6)  # add limit of 0.6 based on Vesic
+
     # depth factors:
     if fd.depth / fd_width > 1:
         k = np.arctan(fd.depth / fd_width)
@@ -299,7 +316,7 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     d_g = 1.0
 
     # load inclination factors
-    if fd_length is None:
+    if fd_length / fd_width > 10:
         m = 2.0
     else:
         m_b = (2.0 + fd_width / fd_length) / (1 + fd_width / fd_length)
@@ -310,9 +327,9 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
         i_q = 1.0
         i_g = 1.0
     else:
-        i_q = (1.0 - horizontal_load / (vertical_load + area_foundation *
+        i_q = (1.0 - horizontal_load / (nload + area_foundation *
                                         c_a / np.tan(sl.phi_r))) ** m
-        i_g = (1.0 - horizontal_load / (vertical_load + area_foundation *
+        i_g = (1.0 - horizontal_load / (nload + area_foundation *
                                         c_a / np.tan(sl.phi_r))) ** (m + 1)
     i_c = i_q - (1 - i_q) / (fd.nq_factor - 1)
     check_i_c = 1 - m * horizontal_load / (area_foundation * c_a * fd.nc_factor)
@@ -337,24 +354,22 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     b_g = b_q
 
     # stress at footing base:
-
     if gwl == 0:
         q_d = sl.unit_eff_weight * fd.depth
         unit_weight = sl.unit_bouy_weight
-
-    elif gwl > 0 and gwl < fd.depth:
+    elif 0 < gwl < fd.depth:
         q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
         unit_weight = sl.unit_bouy_weight
-
-    elif gwl >= fd.depth and gwl <= fd.depth + fd_width:
+    elif fd.depth <= gwl <= fd.depth + fd_width:
         sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
                 ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.average_unit_bouy_weight
-
     elif gwl > fd.depth + fd_width:
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.unit_dry_weight
+    else:
+        raise ValueError(f'gwl must be zero or positive, not {gwl}')
     q_d += ob
     if verbose:
         log("Nc: ", fd.nc_factor)
@@ -380,18 +395,19 @@ def capacity_vesic_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_til
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c * g_c * b_c +
                 q_d * fd.nq_factor * s_q * d_q * i_q * g_q * b_q +
-                0.5 * fd_width * unit_weight *
+                0.5 * width_for_stress * unit_weight *
                 fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
+
+    fd.width_eff = temp_width_eff
+    fd.length_eff = temp_length_eff
+    if ip_axis_2d is not None:
+        setattr(fd, f'{fd.ip_axis}_eff', 1)
+    fd.area_eff = fd.width_eff * fd.length_eff
+    fd.n_ult = fd.q_ult * fd.area_eff
 
     if verbose:
         log("qult: ", fd.q_ult)
     return fd.q_ult
-
-
-def capacity_vesics_1975(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, verbose=0, gwl=1e6, **kwargs):
-    return capacity_vesic_1975(sl, fd, h_l=h_l, h_b=h_b, vertical_load=vertical_load, slope=slope, base_tilt=base_tilt,
-                               verbose=verbose, gwl=gwl,
-                               **kwargs)
 
 
 def capacity_terzaghi_1943(sl, fd, round_footing=False, ip_axis_2d=None, verbose=0, **kwargs):
@@ -471,7 +487,7 @@ def capacity_terzaghi_1943(sl, fd, round_footing=False, ip_axis_2d=None, verbose
     return fd.q_ult
 
 
-def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0,
+def capacity_brinch_hansen_1970(sl, fd, gwl=1e6, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0,
                                 **kwargs):
     """
     Calculates the foundation capacity according Hansen (1970)
@@ -494,25 +510,42 @@ def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, 
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
 
+    hload_l = kwargs.setdefault('hload_length', 0)
+    hload_b = kwargs.setdefault('hload_width', 0)
+    nload = kwargs.setdefault('nload', 1)
+    horizontal_load = np.sqrt(hload_l ** 2 + hload_b ** 2)
+    # eccentricity due to offset vertical load, hload at height and direct moment.
+    e_length = kwargs.setdefault('e_length', 0)
+    e_width = kwargs.setdefault('e_width', 0)
+    ob = kwargs.get('ob', 0.0)  # overburden pressure
+
     if 'axis_inf' in kwargs:
         raise ValueError('use ip_axis_2d instead of axis_inf')
-    if ip_axis_2d is None:
-        if fd.length > fd.width:
-            fd_length = fd.length
-            fd_width = fd.width
+
+    area_foundation = fd.length * fd.width
+    temp_fd_length = fd.length
+    temp_fd_width = fd.width
+    if ip_axis_2d is not None:
+        if ip_axis_2d == 'width':
+            area_foundation = temp_fd_width
+            temp_fd_length = temp_fd_width * 100
+        elif ip_axis_2d == 'length':
+            area_foundation = temp_fd_length
+            temp_fd_width = temp_fd_length * 100
         else:
-            fd_length = fd.width
-            fd_width = fd.length
-    elif ip_axis_2d == 'length':
-        fd_width = fd.length
-        fd_length = None
-    elif ip_axis_2d == 'width':
-        fd_width = fd.width
-        fd_length = None
+            raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
+
+    temp_width_eff = temp_fd_width - 2 * abs(e_width)
+    temp_length_eff = temp_fd_length - 2 * abs(e_length)
+    if temp_length_eff > temp_width_eff:
+        length_eff = temp_length_eff
+        width_eff = temp_width_eff
+        rev = 0
     else:
-        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
-    area_foundation = fd_length * fd_width
-    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+        length_eff = temp_width_eff
+        width_eff = temp_length_eff
+        rev = 1
+
     c_a = 0.6 - 1.0 * sl.cohesion
 
     # Note: exact solution for associated flow rule
@@ -523,25 +556,26 @@ def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, 
         fd.nc_factor = (fd.nq_factor - 1) / np.tan(sl.phi_r)
     fd.ng_factor = 1.5 * (fd.nq_factor - 1) * np.tan(sl.phi_r)
 
+    # Note: according to Salgado (2008) page 437 BH1970 uses effective dimensions for shape and depth factors
     # shape factors
-    if fd_length is None:
+    if length_eff / width_eff > 10:
         s_c = 1
         s_q = 1
         s_g = 1
     else:
         if sl.phi_r == 0:
-            s_c = 0.2 * fd_width / fd_length
+            s_c = 0.2 * width_eff / length_eff
         else:
-            s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
+            s_c = 1.0 + fd.nq_factor / fd.nc_factor * width_eff / length_eff
 
-        s_q = 1.0 + fd_width / fd_length * np.sin(sl.phi_r)
-        s_g = 1.0 - 0.4 * fd_width / fd_length
+        s_q = 1.0 + width_eff / length_eff * np.sin(sl.phi_r)
+        s_g = 1.0 - 0.4 * width_eff / length_eff
 
     # depth factors:
-    if fd.depth / fd_width > 1:
-        k = np.arctan(fd.depth / fd_width)
+    if fd.depth / width_eff > 1:
+        k = np.arctan(fd.depth / width_eff)
     else:
-        k = fd.depth / fd_width
+        k = fd.depth / width_eff
     d_c = 1 + 0.4 * k
     if sl.phi == 0:
         d_c = 0.4 * k
@@ -555,10 +589,10 @@ def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, 
         i_g = 1.0
     else:
         i_q = ((1.0 - 0.5 * horizontal_load /
-                (vertical_load + area_foundation * c_a / np.tan(sl.phi_r))) ** 5)
+                (nload + area_foundation * c_a / np.tan(sl.phi_r))) ** 5)
         i_c = i_q - (1 - i_q) / (fd.nq_factor - 1)
         i_g = ((1 - (0.7 * horizontal_load) /
-                (vertical_load + area_foundation * c_a / np.tan(sl.phi_r))) ** 5)
+                (nload + area_foundation * c_a / np.tan(sl.phi_r))) ** 5)
 
     # slope factors:
     if sl.phi_r == 0:
@@ -597,7 +631,23 @@ def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, 
         log("b_g: ", b_g)
 
     # stress at footing base:
-    q_d = sl.unit_dry_weight * fd.depth
+    if gwl == 0:
+        q_d = sl.unit_bouy_weight * fd.depth
+        unit_weight = sl.unit_bouy_weight
+    elif 0 < gwl < fd.depth:
+        q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
+        unit_weight = sl.unit_bouy_weight
+    elif fd.depth <= gwl <= fd.depth + width_eff:
+        sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
+                ((gwl - fd.depth) / width_eff) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+        q_d = sl.unit_dry_weight * fd.depth
+        unit_weight = sl.average_unit_bouy_weight
+    elif gwl > fd.depth + width_eff:
+        q_d = sl.unit_dry_weight * fd.depth
+        unit_weight = sl.unit_dry_weight
+    else:
+        raise DesignError(f'gwl must be positive or zero, not: {gwl}')
+    q_d += ob  # add overburden
 
     # Capacity
     if sl.phi_r == 0:
@@ -607,15 +657,24 @@ def capacity_brinch_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, 
         fd.q_ult = (sl.cohesion * fd.nc_factor *
                     s_c * d_c * i_c * g_c * b_c +
                     q_d * fd.nq_factor * s_q * d_q * i_q * g_q * b_q +
-                    0.5 * fd_width * sl.unit_dry_weight *
+                    0.5 * width_eff * unit_weight *
                     fd.ng_factor * s_g * d_g * i_g * g_g * b_g)
+    if rev:
+        fd.width_eff = length_eff
+        fd.length_eff = width_eff
+    else:
+        fd.width_eff = width_eff
+        fd.length_eff = length_eff
+    if ip_axis_2d is not None:
+        setattr(fd, f'{fd.ip_axis}_eff', 1)
+    fd.area_eff = fd.width_eff * fd.length_eff
+    fd.n_ult = fd.q_ult * fd.area_eff
+    if verbose:
+        log("qult: ", fd.q_ult)
+    return fd.q_ult
 
 
-def capacity_hansen_1970(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0, **kwargs):
-    return capacity_brinch_hansen_1970(sl, fd, h_l=h_l, h_b=h_b, vertical_load=vertical_load, slope=slope, base_tilt=base_tilt, ip_axis_2d=ip_axis_2d, verbose=verbose, **kwargs)
-
-
-def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_axis_2d=None, verbose=0, **kwargs):
+def capacity_meyerhof_1963(sl, fd, gwl=1e6, ip_axis_2d=None, verbose=0, **kwargs):
     """
     Calculates the foundation capacity according Meyerhoff (1963)
     http://www.engs-comp.com/meyerhof/index.shtml
@@ -624,34 +683,46 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_ax
 
     :param sl: Soil object
     :param fd: Foundation object
-    :param h_l: Horizontal load parallel to length
-    :param h_b: Horizontal load parallel to width
-    :param vertical_load: Vertical load
+    :param hload_l: Horizontal load parallel to length
+    :param hload_b: Horizontal load parallel to width
+    :param nload: Vertical load
     :param verbose: verbosity
     :return: ultimate bearing stress
     """
-    ob = kwargs.get('ob', 0.0)
+
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
-    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+    hload_b = kwargs.setdefault('hload_length', 0)
+    hload_l = kwargs.setdefault('hload_width', 0)
+    nload = kwargs.setdefault('nload', 1)
+    horizontal_load = np.sqrt(hload_l ** 2 + hload_b ** 2)
+    # eccentricity due to offset vertical load, hload at height and direct moment.
+    e_length = kwargs.setdefault('e_length', 0)
+    e_width = kwargs.setdefault('e_width', 0)
+    ob = kwargs.get('ob', 0.0)
     if 'axis_inf' in kwargs:
         raise ValueError('use ip_axis_2d instead of axis_inf')
-    if ip_axis_2d is None:
-        if fd.length > fd.width:
-            fd_length = fd.length
-            fd_width = fd.width
+    temp_fd_length = fd.length
+    temp_fd_width = fd.width
+    if ip_axis_2d is not None:
+        if ip_axis_2d == 'width':
+            temp_fd_length = temp_fd_width * 100
+        elif ip_axis_2d == 'length':
+            temp_fd_width = temp_fd_length * 100
         else:
-            fd_length = fd.width
-            fd_width = fd.length
-    elif ip_axis_2d == 'length':
-        fd_width = fd.length
-        fd_length = None
-    elif ip_axis_2d == 'width':
-        fd_width = fd.width
-        fd_length = None
+            raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
+
+    temp_width_eff = temp_fd_width - 2 * abs(e_width)
+    temp_length_eff = temp_fd_length - 2 * abs(e_length)
+    if temp_length_eff > temp_width_eff:
+        length_eff = temp_length_eff
+        width_eff = temp_width_eff
+        rev = 0
     else:
-        raise ValueError(f'ip_axis_2d must be either: None, "width", or "length" not {ip_axis_2d}')
+        length_eff = temp_width_eff
+        width_eff = temp_length_eff
+        rev = 1
 
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 *
                     np.exp(np.pi * np.tan(sl.phi_r)))
@@ -668,27 +739,27 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_ax
 
     kp = (np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2
     # shape factors
-    if fd_length is None:
+    if length_eff / width_eff > 10:
         s_c = 1
         s_q = 1
     else:
-        s_c = 1 + 0.2 * kp * fd_width / fd_length
+        s_c = 1 + 0.2 * kp * width_eff / length_eff
         if sl.phi > 10:
-            s_q = 1.0 + 0.1 * kp * fd_width / fd_length
+            s_q = 1.0 + 0.1 * kp * width_eff / length_eff
         else:
             s_q = 1.0
     s_g = s_q
 
     # depth factors
-    d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / fd_width
+    d_c = 1 + 0.2 * np.sqrt(kp) * fd.depth / width_eff
     if sl.phi > 10:
-        d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / fd_width
+        d_q = 1 + 0.1 * np.sqrt(kp) * fd.depth / width_eff
     else:
         d_q = 1.0
     d_g = d_q
 
     # inclination factors:
-    theta_load = np.arctan(horizontal_load / vertical_load)
+    theta_load = np.arctan(horizontal_load / nload)
     i_c = (1 - theta_load / (np.pi * 0.5)) ** 2
     i_q = i_c
     if sl.phi > 0:
@@ -697,59 +768,75 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, h_l=0, h_b=0, vertical_load=1, ip_ax
         i_g = 0
 
     # stress at footing base:
-
     if gwl == 0:
         q_d = sl.unit_bouy_weight * fd.depth
         unit_weight = sl.unit_bouy_weight
-
-    elif gwl > 0 and gwl < fd.depth:
+    elif 0 < gwl < fd.depth:
         q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
         unit_weight = sl.unit_bouy_weight
-
-    elif gwl >= fd.depth and gwl <= fd.depth + fd_width:
+    elif fd.depth <= gwl <= fd.depth + width_eff:
         sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
-                ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+                ((gwl - fd.depth) / width_eff) * (sl.unit_dry_weight - sl.unit_bouy_weight))
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.average_unit_bouy_weight
-
-    elif gwl > fd.depth + fd_width:
+    elif gwl > fd.depth + width_eff:
         q_d = sl.unit_dry_weight * fd.depth
         unit_weight = sl.unit_dry_weight
+    else:
+        raise DesignError(f'gwl must be positive or zero, not: {gwl}')
     q_d += ob  # add overburden
 
     if verbose:
         log("Nc: ", fd.nc_factor)
         log("Nq: ", fd.nq_factor)
         log("Ng: ", fd.ng_factor)
-        log("s_c: ", s_c)
-        log("s_q: ", s_q)
-        log("s_g: ", s_g)
-        log("d_c: ", d_c)
-        log("d_q: ", d_q)
-        log("d_g: ", d_g)
-        log("i_c: ", i_c)
-        log("i_q: ", i_q)
-        log("i_g: ", i_g)
-        log("q_d: ", q_d)
+        log("s_c: %.3f" % s_c)
+        log("s_q: %.3f" % s_q)
+        log("s_g: %.3f" % s_g)
+        log("d_c: %.3f" % d_c)
+        log("d_q: %.3f" % d_q)
+        log("d_g: %.3f" % d_g)
+        log("i_c: %.3f" % i_c)
+        log("i_q: %.3f" % i_q)
+        log("i_g: %.3f" % i_g)
+        log("q_d: %.3f" % q_d)
 
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c +
                 q_d * fd.nq_factor * s_q * d_q * i_q +
-                0.5 * fd_width * unit_weight *
+                0.5 * width_eff * unit_weight *
                 fd.ng_factor * s_g * d_g * i_g)
+    if rev:
+        fd.width_eff = length_eff
+        fd.length_eff = width_eff
+    else:
+        fd.width_eff = width_eff
+        fd.length_eff = length_eff
+    if ip_axis_2d is not None:
+        setattr(fd, f'{fd.ip_axis}_eff', 1)
+    fd.area_eff = fd.width_eff * fd.length_eff
+    fd.n_ult = fd.q_ult * fd.area_eff
+    if verbose:
+        log("q_ult: %.3f" % fd.q_ult)
     return fd.q_ult
 
 
-def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbose=0, **kwargs):
+def capacity_nzs_vm4_2011(sl, fd, gwl=1e6, slope=0, verbose=0, save_factors=0, **kwargs):
     """
     calculates the capacity according to
      Appendix B verification method 4 of the NZ building code
 
     :param sl: Soil object
     :param fd: Foundation object
-    :param h_l: Horizontal load parallel to length
-    :param h_b: Horizontal load parallel to width
-    :param vertical_load: Vertical load
+    :param h_loads:
+        Horizontal loads dictionary 'length_dir' and 'width_dir', each containing:
+            'load_ratio': the ratio of horizontal load to vertical load
+                (note positive should be consistent with a eccens and right-hand-rule)
+            'height': The height of the applied load
+    :param e_length:
+        Vertical load eccentricity in length dir
+    :param e_width:
+        Vertical load eccentricity in width dir
     :param slope: ground slope
     :param verbose: verbosity
     :return: ultimate bearing stress
@@ -761,40 +848,52 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
         models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
         models.check_required(fd, ["length", "width", "depth"])
 
-    horizontal_load = np.sqrt(h_l ** 2 + h_b ** 2)
+    hload_l = kwargs.setdefault('hload_length', 0)
+    hload_b = kwargs.setdefault('hload_width', 0)
+    nload = kwargs.setdefault('nload', 1)
+    horizontal_load = np.sqrt(hload_l ** 2 + hload_b ** 2)
+    dep_inputs = ['h_b', 'h_l', 'vertical_load', 'h_eff_b', 'h_eff_l']
+    for item in dep_inputs:
+        if item in kwargs:
+            raise ValueError(f'Input {item} has deprecated')
 
-    v_l = kwargs.get("loc_v_l", fd.length / 2)  # given in fd coordinates
-    v_b = kwargs.get("loc_v_b", fd.width / 2)
-    h_eff_b = kwargs.get("h_eff_b", 0)
-    h_eff_l = kwargs.get("h_eff_l", 0)
+    # eccentricity due to offset vertical load, hload at height and direct moment.
+    e_length = kwargs.setdefault('e_length', 0)
+    e_width = kwargs.setdefault('e_width', 0)
 
-    if fd.length > fd.width:  # TODO: deal with plane strain
-        fd_length = fd.length
-        fd_width = fd.width
-        loc_v_l = v_l
-        loc_v_b = v_b
-        loc_h_b = h_b
-        loc_h_l = h_l
+    ip_axis_2d = kwargs.get('ip_axis_2d', None)
+    ob = kwargs.get('ob', 0.0)  # overburden pressure
+
+    temp_fd_length = fd.length
+    temp_fd_width = fd.width
+    if ip_axis_2d is not None:
+        if ip_axis_2d == 'width':
+            temp_fd_length = temp_fd_width * 100
+        elif ip_axis_2d == 'length':
+            temp_fd_width = temp_fd_length * 100
+        else:
+            raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
+
+    # Note: Often X & Y are used as the distance from the edge to the applied load. X = B/2 - e_B
+    # Here e is used to quantify offset vertical load, hload at height and direct moment
+    temp_width_eff = temp_fd_width - 2 * abs(e_width)
+    temp_length_eff = temp_fd_length - 2 * abs(e_length)
+    if temp_length_eff > temp_width_eff:
+        length_eff = temp_length_eff
+        width_eff = temp_width_eff
+        rev = 0
     else:
-        fd_length = fd.width
-        fd_width = fd.length
-        loc_v_l = v_b
-        loc_v_b = v_l
-        loc_h_b = h_l
-        loc_h_l = h_b
+        length_eff = temp_width_eff
+        width_eff = temp_length_eff
+        rev = 1
 
-    ecc_b = loc_h_b * h_eff_b / vertical_load
-    ecc_l = loc_h_l * h_eff_l / vertical_load
-
-    width_eff = min(fd_width, 2 *
-                    (loc_v_b + ecc_b), 2 * (fd_width - loc_v_b - ecc_b))
-    length_eff = min(fd_length, 2 *
-                     (loc_v_l + ecc_l), 2 * (fd_length - loc_v_l - ecc_l))
     area_foundation = length_eff * width_eff
+    if ip_axis_2d is not None:
+        area_foundation = width_eff
 
-    # check para 3.4.1
-    if width_eff / 2 < fd_width / 6:
-        raise DesignError("failed on eccentricity")
+    # check CL 3.4.1
+    if temp_width_eff / 2 < temp_fd_width / 6 or temp_length_eff / 2 < temp_fd_length / 6:
+        print("failed on eccentricity")
 
     # LOAD FACTORS:
     fd.nq_factor = ((np.tan(np.pi / 4 + sl.phi_r / 2)) ** 2 * np.exp(np.pi * np.tan(sl.phi_r)))
@@ -805,9 +904,14 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
     fd.ng_factor = 2.0 * (fd.nq_factor - 1) * np.tan(sl.phi_r)
 
     # shape factors:
-    s_c = 1.0 + fd.nq_factor / fd.nc_factor * width_eff / length_eff
-    s_q = 1 + width_eff / length_eff * np.tan(sl.phi_r)
-    s_g = max(1.0 - 0.4 * width_eff / length_eff, 0.6)  # add limit of 0.6 based on Vesics
+    if length_eff / width_eff > 10:
+        s_c = 1.0
+        s_q = 1.0
+        s_g = 1.0
+    else:
+        s_c = 1.0 + fd.nq_factor / fd.nc_factor * width_eff / length_eff
+        s_q = 1 + width_eff / length_eff * np.tan(sl.phi_r)
+        s_g = max(1.0 - 0.4 * width_eff / length_eff, 0.6)  # add limit of 0.6 based on Vesic
 
     # depth factors:
     if fd.depth / width_eff > 1:
@@ -828,14 +932,14 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
         i_q = 1.0
         i_g = 1.0
     else:
-        if h_b == 0:
-            i_q = 1 - horizontal_load / (vertical_load + area_foundation * sl.cohesion /
+        if hload_b == 0:
+            i_q = 1 - horizontal_load / (nload + area_foundation * sl.cohesion /
                                          np.tan(sl.phi_r))
             i_g = i_q
-        elif h_b > 0 and h_l == 0:
-            i_q = ((1 - 0.7 * horizontal_load / (vertical_load + area_foundation * sl.cohesion /
+        elif hload_b > 0 and hload_l == 0:
+            i_q = ((1 - 0.7 * horizontal_load / (nload + area_foundation * sl.cohesion /
                                                  np.tan(sl.phi_r))) ** 3)
-            i_g = ((1 - horizontal_load / (vertical_load + area_foundation * sl.cohesion /
+            i_g = ((1 - horizontal_load / (nload + area_foundation * sl.cohesion /
                                            np.tan(sl.phi_r))) ** 3)
         else:
             raise DesignError("not setup for bi-directional loading")
@@ -847,7 +951,23 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
     g_g = g_q
 
     # stress at footing base:
-    q_d = sl.unit_dry_weight * fd.depth
+    if gwl == 0:
+        q_d = sl.unit_bouy_weight * fd.depth
+        unit_weight = sl.unit_bouy_weight
+    elif 0 < gwl < fd.depth:
+        q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
+        unit_weight = sl.unit_bouy_weight
+    elif fd.depth <= gwl <= fd.depth + width_eff:
+        sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
+                ((gwl - fd.depth) / width_eff) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+        q_d = sl.unit_dry_weight * fd.depth
+        unit_weight = sl.average_unit_bouy_weight
+    elif gwl > fd.depth + width_eff:
+        q_d = sl.unit_dry_weight * fd.depth
+        unit_weight = sl.unit_dry_weight
+    else:
+        raise DesignError(f'gwl must be positive or zero, not: {gwl}')
+    q_d += ob  # add overburden
 
     if verbose:
         log("Nc: %.3f" % fd.nc_factor)
@@ -867,18 +987,42 @@ def capacity_nzs_vm4_2011(sl, fd, h_l=0, h_b=0, vertical_load=1, slope=0, verbos
         log("g_q: %.3f" % g_q)
         log("g_g: %.3f" % g_g)
         log("q_d: %.3f" % q_d)
+    if save_factors:
+        fd.width_eff = width_eff
+        fd.length_eff = length_eff
+        fd.s_c = s_c
+        fd.s_q = s_q
+        fd.s_g = s_g
+        fd.d_c = d_c
+        fd.d_q = d_q
+        fd.d_g = d_g
+        fd.i_c = i_c
+        fd.i_q = i_q
+        fd.i_g = i_g
+
+        fd.q_d = q_d
 
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c * i_c * g_c +
                 q_d * fd.nq_factor * s_q * d_q * i_q * g_q +
-                0.5 * width_eff * sl.unit_dry_weight *
+                0.5 * width_eff * unit_weight *
                 fd.ng_factor * s_g * d_g * i_g * g_g)
+    if rev:
+        fd.width_eff = length_eff
+        fd.length_eff = width_eff
+    else:
+        fd.width_eff = width_eff
+        fd.length_eff = length_eff
+    if ip_axis_2d is not None:
+        setattr(fd, f'{fd.ip_axis}_eff', 1)
+    fd.area_eff = fd.width_eff * fd.length_eff
+    fd.n_ult = fd.q_ult * fd.area_eff
     if verbose:
         log("q_ult: %.3f" % fd.q_ult)
     return fd.q_ult
 
 
-def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save_factors=0, **kwargs):
+def capacity_salgado_2008(sl, fd, gwl=1e6, verbose=0, save_factors=0, **kwargs):
     """
     Calculates the capacity according to
      The Engineering of Foundations textbook by Salgado
@@ -892,9 +1036,11 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
 
     :param sl: Soil object
     :param fd: Foundation object
-    :param h_l: Horizontal load parallel to length
-    :param h_b: Horizontal load parallel to width
-    :param vertical_load: Vertical load
+    :param e_length:
+        Vertical load eccentricity in length dir
+    :param e_width:
+        Vertical load eccentricity in width dir
+
     :param verbose: verbosity
     :return: ultimate bearing stress
     """
@@ -905,8 +1051,15 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
         models.check_required(fd, ["length", "width", "depth"])
     use_bh1970_factors = kwargs.get('use_bh1970_factors', 0)
     use_loukidis_and_salgado_2011 = kwargs.get('use_loukidis_and_salgado_2011', 0)
-    h_eff_b = kwargs.get("h_eff_b", 0)
-    h_eff_l = kwargs.get("h_eff_l", 0)
+
+    hload_b = kwargs.setdefault('hload_length', 0)
+    hload_l = kwargs.setdefault('hload_width', 0)
+    nload = kwargs.setdefault('nload', 1)
+
+    # eccentricity due to offset vertical load, hload at height and direct moment.
+    e_length = kwargs.setdefault('e_length', 0)
+    e_width = kwargs.setdefault('e_width', 0)
+
     ip_axis_2d = kwargs.get('ip_axis_2d', None)
     ob = kwargs.get('ob', 0.0)  # overburden pressure
 
@@ -915,37 +1068,23 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     if ip_axis_2d is not None:
         if ip_axis_2d == 'width':
             temp_fd_length = temp_fd_width * 100
+            e_length = temp_fd_length / 2
         elif ip_axis_2d == 'length':
             temp_fd_width = temp_fd_length * 100
+            e_width = temp_fd_width / 2
         else:
             raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
-    v_l = kwargs.get("loc_v_l", temp_fd_length / 2)  # given in fd coordinates
-    v_b = kwargs.get("loc_v_b", temp_fd_width / 2)
 
-    if temp_fd_length > temp_fd_width:
-        fd_length = temp_fd_length
-        fd_width = temp_fd_width
-        loc_v_l = v_l
-        loc_v_b = v_b
-        loc_h_b = h_b
-        loc_h_l = h_l
+    temp_width_eff = temp_fd_width - 2 * abs(e_width)
+    temp_length_eff = temp_fd_length - 2 * abs(e_length)
+    if temp_length_eff > temp_width_eff:
+        length_eff = temp_length_eff
+        width_eff = temp_width_eff
+        rev = 0
     else:
-        fd_length = temp_fd_width
-        fd_width = temp_fd_length
-        loc_v_l = v_b
-        loc_v_b = v_l
-        loc_h_b = h_l
-        loc_h_l = h_b
-
-    ecc_b = loc_h_b * h_eff_b / vertical_load  # Eccentricity from horizontal load
-    ecc_l = loc_h_l * h_eff_l / vertical_load  # Eccentricity from horizontal load
-
-    width_eff = min(fd_width, 2 * (loc_v_b + ecc_b), 2 * (fd_width - loc_v_b - ecc_b))
-    length_eff = min(fd_length, 2 * (loc_v_l + ecc_l), 2 * (fd_length - loc_v_l - ecc_l))
-
-    # check para 3.4.1
-    if width_eff / 2 < fd_width / 6:
-        DesignError("failed on eccentricity")
+        length_eff = temp_width_eff
+        width_eff = temp_length_eff
+        rev = 1
 
     # LOAD FACTORS:
     fd.nq_factor = np.exp(np.pi * np.tan(sl.phi_r)) * (1 + np.sin(sl.phi_r)) / (1 - np.sin(sl.phi_r))  # Eq 10.6
@@ -970,9 +1109,9 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
             s_q = 1 + (width_eff / length_eff) * np.sin(sl.phi_r)
             s_g = max(1 - 0.4 * width_eff / length_eff, 0.6)
             if sl.phi_r == 0:
-                s_c = 1 + 0.2 * fd_width / fd_length
+                s_c = 1 + 0.2 * width_eff / length_eff
             else:
-                s_c = 1.0 + fd.nq_factor / fd.nc_factor * fd_width / fd_length
+                s_c = 1.0 + fd.nq_factor / fd.nc_factor * width_eff / length_eff
         else:
             # From Table 11-8 on page 496, note phi is in degrees
             d_o_b = min(fd.depth / width_eff, d_o_b_min)
@@ -1000,7 +1139,23 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     d_c = 1.0 + 0.27 * np.sqrt(d_o_b)
 
     # stress at footing base:
-    q_d = sl.unit_dry_weight * fd.depth + ob
+    if gwl == 0:
+        q_d = sl.unit_bouy_weight * fd.depth
+        unit_weight = sl.unit_bouy_weight
+    elif 0 < gwl < fd.depth:
+        q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
+        unit_weight = sl.unit_bouy_weight
+    elif fd.depth <= gwl <= fd.depth + width_eff:
+        sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
+                ((gwl - fd.depth) / width_eff) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+        q_d = sl.unit_dry_weight * fd.depth
+        unit_weight = sl.average_unit_bouy_weight
+    elif gwl > fd.depth + width_eff:
+        q_d = sl.unit_dry_weight * fd.depth
+        unit_weight = sl.unit_dry_weight
+    else:
+        raise DesignError(f'gwl must be positive or zero, not: {gwl}')
+    q_d += ob  # add overburden
 
     if verbose:
         log("width_eff: ", width_eff)
@@ -1008,13 +1163,13 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
         log("Nc: ", fd.nc_factor)
         log("Nq: ", fd.nq_factor)
         log("Ng: ", fd.ng_factor)
-        log("s_c: ", s_c)
-        log("s_q: ", s_q)
-        log("s_g: ", s_g)
-        log("d_c: ", d_c)
-        log("d_q: ", d_q)
-        log("d_g: ", d_g)
-        log("q_d: ", q_d)
+        log("s_c: %.3f" % s_c)
+        log("s_q: %.3f" % s_q)
+        log("s_g: %.3f" % s_g)
+        log("d_c: %.3f" % d_c)
+        log("d_q: %.3f" % d_q)
+        log("d_g: %.3f" % d_g)
+        log("q_d: %.3f" % q_d)
     if save_factors:
         fd.width_eff = width_eff
         fd.length_eff = length_eff
@@ -1029,11 +1184,21 @@ def capacity_salgado_2008(sl, fd, h_l=0, h_b=0, vertical_load=1, verbose=0, save
     # Capacity
     fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c +
                 q_d * fd.nq_factor * s_q * d_q +
-                0.5 * width_eff * sl.unit_dry_weight *
+                0.5 * width_eff * unit_weight *
                 fd.ng_factor * s_g * d_g)
 
+    if rev:
+        fd.width_eff = length_eff
+        fd.length_eff = width_eff
+    else:
+        fd.width_eff = width_eff
+        fd.length_eff = length_eff
+    if ip_axis_2d is not None:
+        setattr(fd, f'{fd.ip_axis}_eff', 1)
+    fd.area_eff = fd.width_eff * fd.length_eff
+    fd.n_ult = fd.q_ult * fd.area_eff
     if verbose:
-        log("qult: ", fd.q_ult)
+        log("q_ult: %.3f" % fd.q_ult)
     return fd.q_ult
 
 
@@ -1197,10 +1362,10 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
         l_o_b = new_fd.llong / new_fd.lshort
     else:
         l_o_b = 7
-    pkwawrgs = {}
+    pkwargs = {}
     if hasattr(sl, 'phi_c_ps_diff'):
         pkwargs['phi_c_ps_diff'] = sl.phi_c_ps_diff
-    sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwawrgs)
+    sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwargs)
 
     q_ult = capacity_salgado_2008(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
     if ip_axis_2d is None:
@@ -1259,27 +1424,24 @@ def capacity_method_selector(sl, fd, method, **kwargs):
 
     if method == 'vesic':
         return capacity_vesic_1975(sl, fd, **kwargs)
-    if method == 'vesics':
-        return capacity_vesic_1975(sl, fd, **kwargs)
     elif method == 'nzs':
         return capacity_nzs_vm4_2011(sl, fd, **kwargs)
     elif method == 'terzaghi':
         return capacity_terzaghi_1943(sl, fd, **kwargs)
-    elif method == 'hansen':
-        return capacity_hansen_1970(sl, fd, **kwargs)
+    elif method == 'brinch_hansen':
+        return capacity_brinch_hansen_1970(sl, fd, **kwargs)
     elif method == 'meyerhof':
         return capacity_meyerhof_1963(sl, fd, **kwargs)
     elif method == 'salgado':
         return capacity_salgado_2008(sl, fd, **kwargs)
     else:
-        raise ValueError(f"{method} not found. method must be 'vesic', 'nzs', 'terzaghi', 'meyerhof', 'salgado'")
+        raise ValueError(f"{method} not found. method must be 'vesic', 'nzs', 'terzaghi', 'meyerhof', 'salgado', 'brinch_hansen'")
 
 
 available_methods = {
-    "vesic": capacity_vesics_1975,
     "nzs": capacity_nzs_vm4_2011,
     "terzaghi": capacity_terzaghi_1943,
-    "hansen": capacity_hansen_1970,
+    "brinch_hansen": capacity_brinch_hansen_1970,
     "meyerhof": capacity_meyerhof_1963,
     "salgado": capacity_salgado_2008
 }

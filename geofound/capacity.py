@@ -268,9 +268,11 @@ def capacity_vesic_1975(sl, fd, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0
         if ip_axis_2d == 'width':
             area_foundation = temp_fd_width
             temp_fd_length = temp_fd_width * 100
+            e_length = 0
         elif ip_axis_2d == 'length':
             area_foundation = temp_fd_length
             temp_fd_width = temp_fd_length * 100
+            e_width = 0
         else:
             raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
 
@@ -529,9 +531,11 @@ def capacity_brinch_hansen_1970(sl, fd, gwl=1e6, slope=0, base_tilt=0, ip_axis_2
         if ip_axis_2d == 'width':
             area_foundation = temp_fd_width
             temp_fd_length = temp_fd_width * 100
+            e_length = 0
         elif ip_axis_2d == 'length':
             area_foundation = temp_fd_length
             temp_fd_width = temp_fd_length * 100
+            e_width = 0
         else:
             raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
 
@@ -708,8 +712,10 @@ def capacity_meyerhof_1963(sl, fd, gwl=1e6, ip_axis_2d=None, verbose=0, **kwargs
     if ip_axis_2d is not None:
         if ip_axis_2d == 'width':
             temp_fd_length = temp_fd_width * 100
+            e_length = 0
         elif ip_axis_2d == 'length':
             temp_fd_width = temp_fd_length * 100
+            e_width = 0
         else:
             raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
 
@@ -1047,8 +1053,11 @@ def capacity_salgado_2008(sl, fd, gwl=1e6, verbose=0, save_factors=0, **kwargs):
     # Need to make adjustments if sand  has DR<40% or
     # clay has liquidity indices greater than 0.7
     if not kwargs.get("disable_requires", False):
-        models.check_required(sl, ["phi_r", "cohesion", "unit_dry_weight"])
+        models.check_required(sl, ["phi_r", "cohesion"])
         models.check_required(fd, ["length", "width", "depth"])
+        if fd.depth != 0 or sl.phi != 0:
+            models.check_required(sl, ["unit_dry_weight"])
+
     use_bh1970_factors = kwargs.get('use_bh1970_factors', 0)
     use_loukidis_and_salgado_2011 = kwargs.get('use_loukidis_and_salgado_2011', 0)
 
@@ -1068,10 +1077,10 @@ def capacity_salgado_2008(sl, fd, gwl=1e6, verbose=0, save_factors=0, **kwargs):
     if ip_axis_2d is not None:
         if ip_axis_2d == 'width':
             temp_fd_length = temp_fd_width * 100
-            e_length = temp_fd_length / 2
+            e_length = 0
         elif ip_axis_2d == 'length':
             temp_fd_width = temp_fd_length * 100
-            e_width = temp_fd_width / 2
+            e_width = 0
         else:
             raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
 
@@ -1139,23 +1148,28 @@ def capacity_salgado_2008(sl, fd, gwl=1e6, verbose=0, save_factors=0, **kwargs):
     d_c = 1.0 + 0.27 * np.sqrt(d_o_b)
 
     # stress at footing base:
-    if gwl == 0:
-        q_d = sl.unit_bouy_weight * fd.depth
-        unit_weight = sl.unit_bouy_weight
-    elif 0 < gwl < fd.depth:
-        q_d = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
-        unit_weight = sl.unit_bouy_weight
-    elif fd.depth <= gwl <= fd.depth + width_eff:
-        sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
-                ((gwl - fd.depth) / width_eff) * (sl.unit_dry_weight - sl.unit_bouy_weight))
-        q_d = sl.unit_dry_weight * fd.depth
-        unit_weight = sl.average_unit_bouy_weight
-    elif gwl > fd.depth + width_eff:
-        q_d = sl.unit_dry_weight * fd.depth
-        unit_weight = sl.unit_dry_weight
+    if fd.depth == 0 and sl.phi == 0.0:
+        q_d1 = 0
+        unit_weight = 0  # unused
     else:
-        raise DesignError(f'gwl must be positive or zero, not: {gwl}')
-    q_d += ob  # add overburden
+        if gwl == 0:
+            q_d1 = sl.unit_bouy_weight * fd.depth
+            unit_weight = sl.unit_bouy_weight
+        elif 0 < gwl < fd.depth:
+            q_d1 = (sl.unit_dry_weight * gwl) + (sl.unit_bouy_weight * (fd.depth - gwl))
+            unit_weight = sl.unit_bouy_weight
+        elif fd.depth <= gwl <= fd.depth + width_eff:
+            sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
+                    ((gwl - fd.depth) / width_eff) * (sl.unit_dry_weight - sl.unit_bouy_weight))
+            q_d1 = sl.unit_dry_weight * fd.depth
+            unit_weight = sl.average_unit_bouy_weight
+        elif gwl > fd.depth + width_eff:
+            q_d1 = sl.unit_dry_weight * fd.depth
+            unit_weight = sl.unit_dry_weight
+        else:
+            raise DesignError(f'gwl must be positive or zero, not: {gwl}')
+    q_d = ob + q_d1
+
 
     if verbose:
         log("width_eff: ", width_eff)
@@ -1182,10 +1196,9 @@ def capacity_salgado_2008(sl, fd, gwl=1e6, verbose=0, save_factors=0, **kwargs):
         fd.q_d = q_d
 
     # Capacity
-    fd.q_ult = (sl.cohesion * fd.nc_factor * s_c * d_c +
-                q_d * fd.nq_factor * s_q * d_q +
-                0.5 * width_eff * unit_weight *
-                fd.ng_factor * s_g * d_g)
+    fd.q_ult = sl.cohesion * fd.nc_factor * s_c * d_c + q_d * fd.nq_factor * s_q * d_q
+    if fd.ng_factor:
+        fd.q_ult += 0.5 * width_eff * unit_weight * fd.ng_factor * s_g * d_g
 
     if rev:
         fd.width_eff = length_eff

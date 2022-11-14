@@ -1294,7 +1294,8 @@ def size_footing_for_capacity(sl, vertical_load, fos=1.0, length_to_width=1.0, v
     return fd
 
 
-def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=None, method='vesic', ob=0.0):
+def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=None, method='vesic', ob=0.0,
+                   max_iters=50):
     """
     Determine the size of a footing given an aspect ratio and a load
 
@@ -1325,8 +1326,8 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=No
     prev_lb_len = 0  # should be FOS lower than 1.
     l_ip = getattr(fd, ip_axis)
     est_len = l_ip / init_fos
-    prev_q = q_ult
-    for i in range(50):
+
+    for i in range(max_iters):
         setattr(new_fd, ip_axis, est_len)
         q = capacity_method_selector(sl, new_fd, method, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, ob=ob)
         if ip_axis_2d is None:
@@ -1342,8 +1343,67 @@ def calc_crit_span(sl, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=No
         else:
             prev_ub_len = est_len
             est_len = (prev_lb_len + est_len) / 2
-    if i == 99:
-        raise ValueError(init_fos, curr_fos, est_len, prev_lb_len, prev_ub_len)
+    if i == max_iters - 1:
+        raise ValueError(f'Critical span not found. init_fos: {init_fos},  curr_fos: {curr_fos}, est_len: {est_len}, '
+                         f'prev_lb_len: {prev_lb_len}, prev_ub_len: {prev_ub_len}')
+    return est_len
+
+
+def calc_crit_span_two_layer(sl0, sl1, h0, fd, vertical_load, ip_axis=None, verbose=0, ip_axis_2d=None, ob=0.0,
+                             max_iters=50):
+    """
+    Determine the size of a footing given an aspect ratio and a load
+
+    :param sl: Soil object
+    :param vertical_load: The applied load to the foundation
+    :param fos: The target factor of safety
+    :param length_to_width: The desired length to width ratio of the foundation
+    :param verbose: verbosity
+    :return: a Foundation object
+    """
+    if ob != 0:
+        raise ValueError('ob currently not supported')
+
+    # Find approximate size
+    new_fd = models.RaftFoundation()
+    new_fd.width = fd.width
+    new_fd.depth = fd.depth
+    new_fd.length = fd.length
+    if ip_axis is None:
+        ip_axis = fd.ip_axis
+    prev_ub_len = getattr(fd, ip_axis)
+    q_ult = capacity_meyerhof_and_hanna_1978(sl0, sl1, h0, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d)
+    if ip_axis_2d is None:
+        area = fd.area
+    else:
+        area = getattr(fd, ip_axis_2d)
+    init_fos = (q_ult * area) / vertical_load
+    if init_fos < 1.0:
+        raise ValueError
+    prev_lb_len = 0  # should be FOS lower than 1.
+    l_ip = getattr(fd, ip_axis)
+    est_len = l_ip / init_fos
+
+    for i in range(max_iters):
+        setattr(new_fd, ip_axis, est_len)
+        q = capacity_meyerhof_and_hanna_1978(sl0, sl1, h0, new_fd, verbose=max(0, verbose - 1),
+                                                 ip_axis_2d=ip_axis_2d)
+        if ip_axis_2d is None:
+            area = new_fd.area
+        else:
+            area = getattr(new_fd, ip_axis_2d)
+        curr_fos = (q * area) / vertical_load
+        if np.isclose(curr_fos, 1.0, rtol=0.01):
+            break
+        elif curr_fos < 1:
+            prev_lb_len = est_len
+            est_len = (prev_ub_len + est_len) / 2
+        else:
+            prev_ub_len = est_len
+            est_len = (prev_lb_len + est_len) / 2
+    if i == max_iters - 1:
+        raise ValueError(f'Critical span not found. init_fos: {init_fos},  curr_fos: {curr_fos}, est_len: {est_len}, '
+                         f'prev_lb_len: {prev_lb_len}, prev_ub_len: {prev_ub_len}')
     return est_len
 
 
@@ -1490,7 +1550,7 @@ def capacity_meyerhof_and_hanna_1978(sl_0, sl_1, h0, fd, gwl=1e6, ip_axis_2d=Non
     sp.add_layer(0, sl_0)
     sp.add_layer(h0, sl_1)
     sp.gwl = gwl
-    return capacity_sp_meyerhof_and_hanna_1978(sp, fd, ip_axis_2d=ip_axis_2d)
+    return capacity_sp_meyerhof_and_hanna_1978(sp, fd, ip_axis_2d=ip_axis_2d, verbose=verbose)
 
 
 def capacity_sp_meyerhof_and_hanna_1978(sp, fd, ip_axis_2d=None, verbose=0):
@@ -1513,7 +1573,7 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, ip_axis_2d=None, verbose=0):
             temp_fd_width = temp_fd_length * 100
         else:
             raise ValueError(f"ip_axis_2d must be either 'width' or 'length', not {ip_axis_2d}")
-    if temp_fd_length > temp_fd_width:  # TODO: deal with plane strain
+    if temp_fd_length > temp_fd_width:
         fd_length = temp_fd_length
         fd_width = temp_fd_width
     else:
@@ -1540,11 +1600,6 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, ip_axis_2d=None, verbose=0):
     else:
         sl_2.nc_factor_2 = (sl_2.nq_factor_2 - 1) / np.tan(np.deg2rad(sl_2.phi))
     sl_2.ng_factor_2 = (sl_2.nq_factor_2 - 1) * np.tan(1.4 * np.deg2rad(sl_2.phi))
-
-    if verbose:
-        log("Nc: ", sl_2.nc_factor_2)
-        log("Nq: ", sl_2.nq_factor_2)
-        log("Ng: ", sl_2.ng_factor_2)
 
     sl_1.kp_1 = (np.tan(np.pi / 4 + np.deg2rad(sl_1.phi / 2))) ** 2
     sl_2.kp_2 = (np.tan(np.pi / 4 + np.deg2rad(sl_2.phi / 2))) ** 2
@@ -1695,6 +1750,26 @@ def capacity_sp_meyerhof_and_hanna_1978(sp, fd, ip_axis_2d=None, verbose=0):
     q_b2 = (q_at_interface * sl_2.nq_factor_2 * sl_2.s_q_2)
     q_b3 = (unit_eff_weight_2_below_foundation * fd_width * sl_2.ng_factor_2 * sl_2.s_g_2 / 2)
     q_b = q_b1 + q_b2 + q_b3
+
+    if verbose:
+        log("Nc l1: ", sl_1.nc_factor_1)
+        log("Nq l1: ", sl_1.nq_factor_1)
+        log("Ng l1: ", sl_1.ng_factor_1)
+        log("s_c l1: %.3f" % sl_1.s_c_1)
+        log("s_q l1: %.3f" % sl_1.s_q_1)
+        log("s_g l1: %.3f" % sl_1.s_g_1)
+        # log("d_c l1: %.3f" % sl_1.d_c_1)
+        # log("d_q l1: %.3f" % sl_1.d_q_1)
+        # log("d_g l1: %.3f" % sl_1.d_g_1)
+        # log("i_c l1: %.3f" % sl_1.i_c_1)
+        # log("i_q l1: %.3f" % sl_1.i_q_1)
+        # log("i_g l1: %.3f" % sl_1.i_g_1)
+        # log("q_d: %.3f" % q_d)
+
+    if verbose:
+        log("Nc sl2: ", sl_2.nc_factor_2)
+        log("Nq sl2: ", sl_2.nq_factor_2)
+        log("Ng sl2: ", sl_2.ng_factor_2)
 
     # Das Eq 4.35 or MH78 Eq 7
     q_t1 = (sl_1.cohesion * sl_1.nc_factor_1 * sl_1.s_c_1)

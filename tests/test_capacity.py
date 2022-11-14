@@ -323,7 +323,7 @@ def test_calc_crit_length():
     # vload = 3000.0
     q_ult = geofound.capacity_vesic_1975(sl, fd)
     vload = 0.5 * q_ult * fd.area
-    crit_len = geofound.capacity.calc_crit_span(sl, fd, vload, ip_axis='length')
+    crit_len = geofound.capacity.calc_crit_span(sl, fd, vload, ip_axis='length', method='vesic')
 
     assert np.isclose(crit_len, 2.765625, rtol=0.001), crit_len
 
@@ -567,6 +567,31 @@ def test_capacity_sp_meyerhof_and_hanna_1978():
     correction_lower_layer = 1.1  # unconfirmed value, test added for v0.4.6
     expected = q_ult_meyerhof * correction_lower_layer
     assert np.isclose(expected, fd.q_ult, rtol=0.01), (expected / 1000, fd.q_ult / 1000)
+
+
+def test_calc_crit_length_two_layer():
+    length = 6.0
+    width = 3.0
+    # depth = 1.5  # note: two layer formulation not accurate for depth
+    depth = 0.0
+    phi = 0.0
+    cohesion = 40.0
+    unit_dry_weight = 18.0
+    sl = geofound.create_soil(phi, cohesion, unit_dry_weight)
+    sl1 = geofound.create_soil(phi, 0.1 * cohesion, unit_dry_weight)
+    fd = geofound.create_foundation(length, width, depth)
+    h0 = width * 4
+    # vload = 3000.0
+    q_ult = geofound.capacity_meyerhof_1963(sl, fd)
+    vload = 0.2 * q_ult * fd.area
+    crit_len_one_layer = geofound.capacity.calc_crit_span(sl, fd, vload, ip_axis='length', method='meyerhof')
+    assert np.isclose(crit_len_one_layer, 1.21875, rtol=0.001), crit_len_one_layer
+    crit_len_two_layer = geofound.capacity.calc_crit_span_two_layer(sl, sl1, h0, fd, vload, ip_axis='length')
+    # unsure why two layer is still giving additional capacity
+    assert np.isclose(crit_len_one_layer, crit_len_two_layer, rtol=0.001), crit_len_two_layer
+    h0 = width * 0.9
+    crit_len_two_layer_small_c = geofound.capacity.calc_crit_span_two_layer(sl, sl1, h0, fd, vload, ip_axis='length')
+    assert crit_len_two_layer_small_c > crit_len_two_layer
 
 
 def test_calc_m_eff_via_loukidis_and_salgado_2006():

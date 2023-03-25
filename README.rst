@@ -58,7 +58,7 @@ Examples
 
     sl.unit_sat_weight = 18.5
 
-    q_lim = geofound.capacity.capacity_vesics_1975(sl, fd)
+    q_lim = geofound.capacity.capacity_vesic_1975(sl, fd)
     p_max = q_lim * length * width
 
     print(' ')

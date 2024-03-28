@@ -123,8 +123,13 @@ def calc_phi_bc_strip_loukidis_2019(phi_c_txc, sl, fd, ip_axis_2d, p_atm=101.0e3
     return phi_c_txc + ((17.6 * sl.relative_density - 8.8) - 2.44 * np.log(fd_width * unit_weight / p_atm))
 
 
-def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=101.0e3, gwl=1e6, ob=0.0):
+def calc_m_eff_bc_via_salgado_2008(sl, fd, ip_axis_2d=None, p_atm=101.0e3, gwl=1e6, ob=0.0):
+    """
+    Method to obtained mean effective stress under footing at BC failure according to Salgado (2008).
 
+    Note, in the Salgado (2008) textbook, the equation cites an unpublished work by Loukidis and Salgado (2006).
+    Personal Comms. with Salgado (2008) suggests using the Salgado (2008) book for citation.
+    """
     if ip_axis_2d is None:
         if fd.length > fd.width:
             fd_length = fd.length
@@ -154,6 +159,10 @@ def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=1
         unit_weight = average_unit_bouy_weight
     sigma_meff = 20 * p_atm * ((unit_weight * fd_width + ob) / p_atm) ** 0.7 * (1 - 0.32 * b_o_l)
     return sigma_meff
+
+
+def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=101.0e3, gwl=1e6, ob=0.0):
+    return calc_m_eff_bc_via_salgado_2008(sl, fd, ip_axis_2d=ip_axis_2d, p_atm=p_atm, gwl=gwl, ob=ob)
 
 
 def calc_m_eff_bc_via_debeer_1965(sl, fd, q_demand, ip_axis_2d=None, gwl=1e6, ob=0):
@@ -1500,6 +1509,59 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
     return est_len, phi_p
 
 
+class PhiPCalculator(object):
+    """
+    Calculates capacity at phi_p
+    """
+    def __init__(self, sl, fd, ip_axis_2d=None, bc_method=None, m_eff_method=None, **kwargs):
+        self.sl = sl
+        self.fd = fd
+        self.ip_axis_2d = ip_axis_2d
+        self.bc_method = bc_method
+        self.m_eff_method = m_eff_method
+        assert hasattr(sl, 'phi_c_txc')
+        self.q_ult = None
+        self.m_eff = None
+        self.phi_p = None
+        self.kwargs = kwargs
+        self.solve()
+
+    def solve(self):
+        cap_kwargs = self.kwargs
+        cap_kwargs['ip_axis_2d'] = self.ip_axis_2d
+        m_eff_sal2008 = calc_m_eff_bc_via_loukidis_and_salgado_2006(self.sl, self.fd)
+        if self.ip_axis_2d:
+            l_o_b = 10
+        else:
+            l_o_b = max(self.fd.length, self.fd.width) / min(self.fd.length, self.fd.width)
+        phi_sal = calc_phi_peak_fd_salgado_2008(self.sl.phi_c_txc, m_eff_sal2008, self.sl.relative_density, l_o_b=l_o_b)
+        self.sl.phi = phi_sal
+        q_ult1 = capacity_method_selector(self.sl, self.fd, self.bc_method, **cap_kwargs)
+        if self.m_eff_method == 'salgado_2008':
+            self.q_ult = q_ult1
+            self.m_eff = m_eff_sal2008
+            self.phi_p = phi_sal
+            return
+        self.sl.phi = self.sl.phi_c_txc
+        q_ult2 = capacity_method_selector(self.sl, self.fd, self.bc_method, **cap_kwargs)
+        q_ult = (q_ult1 + q_ult2) / 2
+        q_ult_old = q_ult
+        for i in range(100):
+            if self.m_eff_method == 'pm_2000':
+                m_eff = calc_m_eff_bc_via_perkins_and_madson_2000(self.fd, q_ult, ip_axis_2d=self.ip_axis_2d)
+            else:
+                raise ValueError()
+            phi_i = calc_phi_peak_fd_salgado_2008(self.sl.phi_c_txc, m_eff, self.sl.relative_density, l_o_b=l_o_b)
+            self.sl.phi = phi_i
+            q_ult = capacity_method_selector(self.sl, self.fd, self.bc_method, **cap_kwargs)
+            if abs(q_ult - q_ult_old) / q_ult_old < 0.02:
+                self.q_ult = q_ult
+                self.m_eff = m_eff
+                self.phi_p = phi_i
+                return
+            q_ult_old = q_ult
+
+
 def calc_crit_span_and_phi_p_main(sl, fd, vertical_load, ip_axis=None, bc_method='salgado', meff_method='debeer1965', 
                                   ip_axis_2d=None, verbose=0, **kwargs):
     """
@@ -1582,7 +1644,7 @@ def calc_crit_span_and_phi_p_main(sl, fd, vertical_load, ip_axis=None, bc_method
             area = new_fd.area
         else:
             area = getattr(new_fd, ip_axis_2d)
-        curr_fos = (q * area) / vertical_load
+        curr_fos = (q_ult * area) / vertical_load
         if np.isclose(curr_fos, 1.0, rtol=0.01):
             break
         elif curr_fos < 1:
@@ -1608,21 +1670,21 @@ def capacity_method_selector(sl, fd, method, **kwargs):
     :return:
     """
 
-    if method == 'vesic':
+    if method in ['vesic', 'vesic_1975']:
         return capacity_vesic_1975(sl, fd, **kwargs)
-    elif method == 'nzs':
+    elif method in ['nzs', 'nzs_vm4_2011']:
         return capacity_nzs_vm4_2011(sl, fd, **kwargs)
-    elif method == 'terzaghi':
+    elif method in ['terzaghi', 'terzaghi_1943']:
         return capacity_terzaghi_1943(sl, fd, **kwargs)
-    elif method == 'brinch_hansen':
+    elif method in ['brinch_hansen', 'brinch_hansen_1970']:
         return capacity_brinch_hansen_1970(sl, fd, **kwargs)
-    elif method == 'meyerhof':
+    elif method in ['meyerhof', 'meyerhof_1963']:
         return capacity_meyerhof_1963(sl, fd, **kwargs)
-    elif method == 'salgado':
+    elif method in ['salgado', 'salgado_2008']:
         return capacity_salgado_2008(sl, fd, **kwargs)
     else:
         raise ValueError(f"{method} not found. method must be 'vesic', 'nzs', 'terzaghi', 'meyerhof', 'salgado', 'brinch_hansen'")
-    
+
     
 def get_capacity_method(method, **kwargs):
     """

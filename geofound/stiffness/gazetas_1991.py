@@ -30,6 +30,8 @@ def calc_rot_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0,
         ip_axis = fd.ip_axis
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
+    # Note that Gazetas 1991 is x2 this, however, inconsistent with Gazetas (1983) table 4 pg 22
+    # This formula is also consistent with num modelling
     k_strip = _pi * sl.g_mod * b ** 2 / (2 * (1 - sl.poissons_ratio))
     f_dyn = 1 - 0.2 * a0
     if fd.depth is not None and fd.depth != 0.0:
@@ -142,7 +144,9 @@ def calc_horz_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0
         ip_axis = fd.ip_axis
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
+    # note that Gazetas (1983) uses a factor of 2.1 instead of 2 - see pg 22
     k_h_0_strip = 2.0 * sl.g_mod / (2 - sl.poissons_ratio)
+
     if a0:
         f_dyn = tdc.get_ky_gazetas(a0, 1000)
     else:
@@ -256,7 +260,9 @@ def calc_vert_strip_via_gazetas_1991(sl, fd, ip_axis=None, a0=0.0, f_contact=1.0
     l_ip = getattr(fd, ip_axis)
     b = l_ip / 2
     v = sl.poissons_ratio
-    k_n_0_strip = 0.73 * sl.g_mod / (1 - v)
+    # k_n_0_strip = 2 * 0.73 * sl.g_mod / (1 - v)  # from Gazetas (1991) table 15.3
+    k_n_0_strip = 1.23 * sl.g_mod / (1 - v)  # from Gazetas (1983) table 4 (pg 22)
+    # note that the factor 1.23 appears to be consistent with FEM modelling
     if a0:
         lob = 1000
         if sl.poissons_ratio <= 0.4:

@@ -156,7 +156,7 @@ def calc_m_eff_bc_via_loukidis_and_salgado_2006(sl, fd, ip_axis_2d=None, p_atm=1
     return sigma_meff
 
 
-def calc_m_eff_bc_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
+def calc_m_eff_bc_via_debeer_1965(sl, fd, q_demand, ip_axis_2d=None, gwl=1e6, ob=0):
     """
     Calculation of average confining stress to compute peak friction angle for ultimate bearing capacity
 
@@ -166,7 +166,8 @@ def calc_m_eff_bc_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
     ----------
     sl
     fd
-    q_ult
+    q_demand:
+        applied load at failure
     ip_axis_2d
     gwl
 
@@ -194,7 +195,10 @@ def calc_m_eff_bc_via_debeer_1965(sl, fd, q_ult, ip_axis_2d=None, gwl=1e6):
         sl.average_unit_bouy_weight = sl.unit_bouy_weight + (
                 ((gwl - fd.depth) / fd_width) * (sl.unit_dry_weight - sl.unit_bouy_weight))
         q_d = sl.unit_dry_weight * fd.depth
-    sigma_meff = 1. / ((1 + np.tan(sl.phi_r) ** 2) * (1 + np.sin(sl.phi_r))) * (q_ult + 3 * q_d) / 4
+    else:
+        q_d = 0
+    q_d += ob
+    sigma_meff = 1. / ((1 + np.tan(sl.phi_r) ** 2) * (1 + np.sin(sl.phi_r))) * (q_demand + 3 * q_d) / 4
     return sigma_meff
 
 
@@ -222,6 +226,17 @@ def calc_m_eff_bc_via_perkins_and_madson_2000(fd, q_demand, ip_axis_2d=None, min
     else:
         sigma_meff = 1. / 6 * (0.52 - 0.04 * l_o_b) * q_demand
     return sigma_meff
+
+
+def get_m_eff_method(method):
+    if method == 'debeer1965':
+        return calc_m_eff_bc_via_debeer_1965
+    elif method == 'pm2000':
+        return calc_m_eff_bc_via_perkins_and_madson_2000
+    elif method == 'ls2006':
+        return calc_m_eff_bc_via_loukidis_and_salgado_2006
+    else:
+        raise ValueError(f'method must be "debeer1965", "pm2000" or "ls2006". Not: {method}')
 
 
 def capacity_vesic_1975(sl, fd, slope=0, base_tilt=0, ip_axis_2d=None, verbose=0,
@@ -1055,7 +1070,7 @@ def capacity_salgado_2008(sl, fd, gwl=1e6, verbose=0, save_factors=0, **kwargs):
     if not kwargs.get("disable_requires", False):
         models.check_required(sl, ["phi_r", "cohesion"])
         models.check_required(fd, ["length", "width", "depth"])
-        if fd.depth != 0 or sl.phi != 0:
+        if (fd.depth != 0 or sl.phi != 0) and gwl > 0:
             models.check_required(sl, ["unit_dry_weight"])
 
     use_bh1970_factors = kwargs.get('use_bh1970_factors', 0)
@@ -1447,7 +1462,7 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
         area = getattr(fd, ip_axis_2d)
     init_fos = (q_ult * area) / vertical_load
     if init_fos < 1.0:
-        raise ValueError
+        raise ValueError(f'init_fos: {init_fos}')
     prev_lb_len = 0  # should be FOS lower than 1.
     l_ip = getattr(fd, ip_axis)
     est_len = l_ip / init_fos
@@ -1465,6 +1480,104 @@ def calc_crit_span_and_phi_p_via_salgado_2008(sl, fd, vertical_load, ip_axis=Non
             pkwawrgs['phi_c_ps_diff'] = sl.phi_c_ps_diff
         sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwawrgs)
         q = capacity_salgado_2008(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
+        if ip_axis_2d is None:
+            area = new_fd.area
+        else:
+            area = getattr(new_fd, ip_axis_2d)
+        curr_fos = (q * area) / vertical_load
+        if np.isclose(curr_fos, 1.0, rtol=0.01):
+            break
+        elif curr_fos < 1:
+            prev_lb_len = est_len
+            est_len = (prev_ub_len + est_len) / 2
+        else:
+            prev_ub_len = est_len
+            est_len = (prev_lb_len + est_len) / 2
+    if i == 99:
+        raise ValueError(init_fos, curr_fos, est_len, prev_lb_len, prev_ub_len)
+    phi_p = sl.phi
+    sl.phi = sl_org_phi
+    return est_len, phi_p
+
+
+def calc_crit_span_and_phi_p_main(sl, fd, vertical_load, ip_axis=None, bc_method='salgado', meff_method='debeer1965', 
+                                  ip_axis_2d=None, verbose=0, **kwargs):
+    """
+    Determine the size of a footing given an aspect ratio and a load
+
+    :param sl: Soil object
+    :param vertical_load: The applied load to the foundation
+    :param fos: The target factor of safety
+    :param length_to_width: The desired length to width ratio of the foundation
+    :param verbose: verbosity
+    :return: a Foundation object
+    """
+    sl_org_phi = sl.phi
+    # Find approximate size
+    new_fd = sm.RaftFoundation()
+    new_fd.width = fd.width
+    new_fd.depth = fd.depth
+    new_fd.length = fd.length
+    if ip_axis_2d:
+        ip_axis = ip_axis_2d
+    elif ip_axis is None:
+        ip_axis = fd.ip_axis
+    prev_ub_len = getattr(fd, ip_axis)
+    
+    calc_m_eff = get_m_eff_method(method=meff_method)
+    capacity_calc = get_capacity_method(method=bc_method)
+    if bc_method in ['debeer1965', 'pm2000']:
+        q_ult = capacity_calc(sl, fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
+    p_eff = calc_m_eff(sl, fd, ip_axis_2d=ip_axis_2d, q_demand=q_ult)
+    if ip_axis_2d is None:
+        l_o_b = new_fd.llong / new_fd.lshort
+    else:
+        l_o_b = 7
+    pkwargs = {}
+    if hasattr(sl, 'phi_c_ps_diff'):
+        pkwargs['phi_c_ps_diff'] = sl.phi_c_ps_diff
+    sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwargs)
+    if bc_method in ['debeer1965', 'pm2000']:
+        p_eff_prev = 0
+        while abs(p_eff - p_eff_prev) > 20:
+            p_eff = calc_m_eff(sl, fd, ip_axis_2d=ip_axis_2d, q_demand=q_ult)
+            sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwargs)
+            q_ult = capacity_calc(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
+    else:
+        q_ult = capacity_calc(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
+
+    
+    if ip_axis_2d is None:
+        area = fd.area
+    else:
+        area = getattr(fd, ip_axis_2d)
+    init_fos = (q_ult * area) / vertical_load
+    if init_fos < 1.0:
+        raise ValueError(f'init_fos: {init_fos}')
+    prev_lb_len = 0  # should be FOS lower than 1.
+    l_ip = getattr(fd, ip_axis)
+    est_len = l_ip / init_fos
+    prev_q = q_ult
+    for i in range(50):
+        setattr(new_fd, ip_axis, est_len)
+
+        p_eff = calc_m_eff(sl, new_fd, ip_axis_2d=ip_axis_2d, **kwargs)
+        if ip_axis_2d is None:
+            l_o_b = new_fd.llong / new_fd.lshort
+        else:
+            l_o_b = 7
+        pkwawrgs = {}
+        if hasattr(sl, 'phi_c_ps_diff'):
+            pkwawrgs['phi_c_ps_diff'] = sl.phi_c_ps_diff
+        sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwawrgs)
+        if bc_method in ['debeer1965', 'pm2000']:
+            p_eff_prev = 0
+            while abs(p_eff - p_eff_prev) > 20:
+                p_eff = calc_m_eff(sl, fd, ip_axis_2d=ip_axis_2d, q_demand=q_ult)
+                sl.phi = calc_phi_peak_fd_salgado_2008(sl.phi_c_txc, p_eff, sl.relative_density, l_o_b, **pkwargs)
+                q_ult = capacity_calc(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
+        else:
+            q_ult = capacity_calc(sl, new_fd, verbose=max(0, verbose - 1), ip_axis_2d=ip_axis_2d, **kwargs)
         if ip_axis_2d is None:
             area = new_fd.area
         else:
@@ -1507,6 +1620,32 @@ def capacity_method_selector(sl, fd, method, **kwargs):
         return capacity_meyerhof_1963(sl, fd, **kwargs)
     elif method == 'salgado':
         return capacity_salgado_2008(sl, fd, **kwargs)
+    else:
+        raise ValueError(f"{method} not found. method must be 'vesic', 'nzs', 'terzaghi', 'meyerhof', 'salgado', 'brinch_hansen'")
+    
+    
+def get_capacity_method(method, **kwargs):
+    """
+    Calculates the bearing capacity of a foundation on soil using the specified method.
+    :param sl: Soil Object
+    :param fd: Foundation Object
+    :param method: Method
+    :param kwargs:
+    :return:
+    """
+
+    if method == 'vesic':
+        return capacity_vesic_1975
+    elif method == 'nzs':
+        return capacity_nzs_vm4_2011
+    elif method == 'terzaghi':
+        return capacity_terzaghi_1943
+    elif method == 'brinch_hansen':
+        return capacity_brinch_hansen_1970
+    elif method == 'meyerhof':
+        return capacity_meyerhof_1963
+    elif method == 'salgado':
+        return capacity_salgado_2008
     else:
         raise ValueError(f"{method} not found. method must be 'vesic', 'nzs', 'terzaghi', 'meyerhof', 'salgado', 'brinch_hansen'")
 
